@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitchen Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8; --warm-white: #faf8f4; --charcoal: #2a2520;
+    --brown: #6b4f3a; --terracotta: #c4714a; --sage: #7a9e7e;
+    --gold: #d4a843; --muted: #9c8f85; --card-bg: #ffffff; --border: #e8e0d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--charcoal); min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; opacity: 0.4; }
+  .app { position: relative; z-index: 1; padding: 20px; max-width: 1024px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .header-left h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--charcoal); letter-spacing: -0.5px; }
+  .header-left .tagline { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+  .clock-block { text-align: right; }
+  .clock-block .time { font-family: 'DM Mono', monospace; font-size: 2.2rem; font-weight: 500; color: var(--charcoal); letter-spacing: -1px; }
+  .clock-block .date { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
+  nav { display: flex; gap: 6px; margin-bottom: 20px; background: var(--card-bg); border-radius: 12px; padding: 6px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  nav button { flex: 1; padding: 10px 8px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--muted); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  nav button.active { background: var(--charcoal); color: var(--cream); box-shadow: 0 2px 8px rgba(42,37,32,0.2); }
+  nav button:not(.active):hover { background: var(--cream); color: var(--charcoal); }
+  .panel { display: none; animation: fadeIn 0.25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .card { background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.04); padding: 20px; margin-bottom: 16px; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--charcoal); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--terracotta); }
+  .timers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .timer-slot { background: var(--cream); border-radius: 10px; padding: 14px; text-align: center; border: 1px solid var(--border); }
+  .timer-display { font-family: 'DM Mono', monospace; font-size: 2rem; font-weight: 400; color: var(--charcoal); letter-spacing: 2px; margin-bottom: 8px; }
+  .timer-display.running { color: var(--terracotta); }
+  .timer-display.done { color: white; animation: pulse 0.4s ease infinite alternate; }
+  @keyframes pulse { from { opacity: 1; } to { opacity: 0.3; } }
+  .alarm-overlay { display: none; position: fixed; inset: 0; z-index: 9999; pointer-events: none; animation: flashRed 0.4s ease infinite alternate; }
+  .alarm-overlay.active { display: block; }
+  @keyframes flashRed { from { background: rgba(180,30,30,0.85); } to { background: rgba(0,0,0,0.7); } }
+  .alarm-banner { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 10000; text-align: center; pointer-events: all; }
+  .alarm-banner-text { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; color: white; text-shadow: 0 2px 20px rgba(0,0,0,0.5); margin-bottom: 16px; }
+  .alarm-banner-label { font-family: 'DM Mono', monospace; font-size: 1rem; color: rgba(255,255,255,0.8); margin-bottom: 24px; letter-spacing: 2px; text-transform: uppercase; }
+  .timer-label-input { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--muted); border: none; background: transparent; text-align: center; width: 100%; margin-bottom: 8px; outline: none; }
+  .timer-controls { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 500; transition: all 0.15s; }
+  .btn-primary { background: var(--terracotta); color: white; }
+  .btn-primary:hover { background: #b5623e; }
+  .btn-ghost { background: var(--border); color: var(--charcoal); }
+  .btn-ghost:hover { background: #d9cfc3; }
+  .btn-sage { background: var(--sage); color: white; }
+  .btn-sage:hover { background: #6a8e6e; }
+  .btn-sm { padding: 4px 10px; font-size: 0.7rem; }
+  .preset-btns { display: flex; gap: 4px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
+  .input-field { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; background: var(--cream); color: var(--charcoal); outline: none; transition: border-color 0.2s; }
+  .input-field:focus { border-color: var(--terracotta); }
+  .grocery-add { display: flex; gap: 8px; margin-bottom: 14px; }
+  .grocery-list { list-style: none; }
+  .grocery-item { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); animation: slideIn 0.2s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+  .grocery-item:last-child { border-bottom: none; }
+  .grocery-check { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; background: white; }
+  .grocery-check.checked { background: var(--sage); border-color: var(--sage); }
+  .grocery-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  .grocery-text { flex: 1; font-size: 0.9rem; }
+  .grocery-text.checked { text-decoration: line-through; color: var(--muted); }
+  .grocery-del { color: var(--muted); cursor: pointer; font-size: 1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; transition: all 0.15s; }
+  .grocery-del:hover { background: #fee; color: #c44; }
+  .grocery-sections { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .section-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--muted); transition: all 0.15s; }
+  .section-pill.active { background: var(--charcoal); color: var(--cream); border-color: var(--charcoal); }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-month { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; }
+  .cal-nav { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; color: var(--charcoal); transition: all 0.15s; }
+  .cal-nav:hover { background: var(--cream); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-name { text-align: center; font-size: 0.65rem; font-weight: 500; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; padding: 6px 0; }
+  .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; position: relative; color: var(--charcoal); }
+  .cal-day:hover { background: var(--cream); }
+  .cal-day.other-month { color: var(--border); }
+  .cal-day.today { background: var(--terracotta); color: white; font-weight: 700; }
+  .cal-day.selected { background: var(--charcoal); color: var(--cream); }
+  .cal-day.has-event::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
+  .cal-day.today.has-event::after { background: white; }
+  .events-section { margin-top: 14px; }
+  .event-date-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .event-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--cream); margin-bottom: 6px; }
+  .event-color { width: 4px; height: 36px; border-radius: 2px; flex-shrink: 0; }
+  .event-info .event-name { font-size: 0.85rem; font-weight: 500; }
+  .event-info .event-time { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .event-info .event-source { font-size: 0.65rem; color: var(--sage); margin-top: 1px; letter-spacing: 0.5px; }
+  .event-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .input-mini { padding: 7px 10px; font-size: 0.8rem; }
+
+  /* Google Calendar sync bar */
+  .gcal-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 14px; flex-wrap: wrap; }
+  .gcal-status { font-size: 0.78rem; color: var(--muted); flex: 1; }
+  .gcal-status.synced { color: var(--sage); }
+  .gcal-status.error { color: var(--terracotta); }
+  .sync-spinner { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* Recipes */
+  .recipes-search { margin-bottom: 16px; }
+  .recipe-card { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; }
+  .recipe-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .recipe-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); }
+  .recipe-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; }
+  .recipe-meta { display: flex; gap: 12px; margin-top: 4px; }
+  .recipe-tag { font-size: 0.7rem; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.5px; }
+  .recipe-expand { color: var(--muted); font-size: 1.2rem; transition: transform 0.2s; }
+  .recipe-card.open .recipe-expand { transform: rotate(180deg); }
+  .recipe-body { display: none; padding: 0 16px 16px; background: var(--card-bg); }
+  .recipe-card.open .recipe-body { display: block; }
+  .recipe-body h4 { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+  .recipe-body ul { list-style: none; }
+  .recipe-body ul li { padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+  .recipe-body ul li:last-child { border-bottom: none; }
+  .recipe-body ul li::before { content: '— '; color: var(--muted); }
+  .recipe-body ol { padding-left: 16px; }
+  .recipe-body ol li { padding: 4px 0; font-size: 0.85rem; }
+  .recipe-add-btn { margin-top: 12px; }
+  .add-recipe-form { padding: 16px; background: var(--cream); border-radius: 10px; border: 1px dashed var(--border); margin-bottom: 12px; }
+  .add-recipe-form h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 12px; }
+  .form-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .form-row .input-field { min-width: 120px; }
+  textarea.input-field { resize: vertical; min-height: 60px; }
+
+  /* AI Import Drop Zone */
+  .import-zone {
+    border: 2px dashed var(--border); border-radius: 12px;
+    padding: 28px 20px; text-align: center;
+    cursor: pointer; transition: all 0.2s; margin-bottom: 16px;
+    background: var(--warm-white); position: relative;
+  }
+  .import-zone:hover, .import-zone.drag-over { border-color: var(--terracotta); background: #fdf5f0; }
+  .import-zone .import-icon { font-size: 2rem; margin-bottom: 8px; }
+  .import-zone .import-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .import-zone .import-sub { font-size: 0.78rem; color: var(--muted); }
+  .import-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  /* AI loading overlay */
+  .ai-loading { display: none; flex-direction: column; align-items: center; gap: 10px; padding: 20px; }
+  .ai-loading.visible { display: flex; }
+  .ai-loading-bar { width: 180px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .ai-loading-fill { height: 100%; background: var(--terracotta); border-radius: 2px; animation: loadBar 1.5s ease infinite; }
+  @keyframes loadBar { 0% { width: 0%; margin-left: 0; } 50% { width: 60%; } 100% { width: 0%; margin-left: 100%; } }
+  .ai-loading-text { font-size: 0.8rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* Preview card before saving */
+  .recipe-preview { background: #fdf5f0; border: 1px solid var(--terracotta); border-radius: 10px; padding: 16px; margin-bottom: 14px; animation: fadeIn 0.3s ease; }
+  .recipe-preview h3 { font-family: 'Playfair Display', serif; font-size: 1rem; margin-bottom: 10px; color: var(--terracotta); }
+  .preview-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* Stopwatch & Alarm */
+  .tab-row { display: flex; gap: 4px; margin-bottom: 16px; background: var(--cream); border-radius: 10px; padding: 4px; border: 1px solid var(--border); }
+  .tab-btn { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 7px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500; color: var(--muted); transition: all 0.2s; }
+  .tab-btn.active { background: white; color: var(--charcoal); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .sub-panel { display: none; }
+  .sub-panel.active { display: block; }
+
+  .stopwatch-display { font-family: 'DM Mono', monospace; font-size: 3.5rem; font-weight: 300; text-align: center; letter-spacing: 2px; color: var(--charcoal); padding: 20px 0 16px; }
+  .stopwatch-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+  .lap-list { list-style: none; max-height: 180px; overflow-y: auto; }
+  .lap-item { display: flex; justify-content: space-between; padding: 7px 4px; border-bottom: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+  .lap-item:last-child { border-bottom: none; }
+  .lap-num { color: var(--muted); }
+
+  /* Timer granular input */
+  .timer-input-row { display: flex; align-items: center; gap: 4px; justify-content: center; margin-bottom: 8px; }
+  .timer-digit-input { width: 44px; text-align: center; font-family: 'DM Mono', monospace; font-size: 1.1rem; padding: 4px 2px; border: 1px solid var(--border); border-radius: 6px; background: white; color: var(--charcoal); outline: none; }
+  .timer-digit-input:focus { border-color: var(--terracotta); }
+  .timer-sep { font-family: 'DM Mono', monospace; font-size: 1.2rem; color: var(--muted); font-weight: 700; }
+
+  /* Alarms */
+  .alarm-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--cream); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); }
+  .alarm-time-display { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 500; color: var(--charcoal); min-width: 60px; }
+  .alarm-label-text { flex: 1; font-size: 0.85rem; }
+  .alarm-toggle { width: 36px; height: 20px; border-radius: 10px; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .alarm-toggle.on { background: var(--sage); }
+  .alarm-toggle.off { background: var(--border); }
+  .alarm-toggle::after { content: ''; position: absolute; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: left 0.2s; }
+  .alarm-toggle.on::after { left: 18px; }
+  .alarm-toggle.off::after { left: 2px; }
+
+  /* Converter */
+  .converter-categories { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .conv-cat { padding: 5px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--muted); transition: all 0.15s; }
+  .conv-cat.active { background: var(--charcoal); color: var(--cream); border-color: var(--charcoal); }
+  .converter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .conv-input { flex: 1; padding: 12px 14px; font-family: 'DM Mono', monospace; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--cream); color: var(--charcoal); outline: none; }
+  .conv-input:focus { border-color: var(--terracotta); }
+  .conv-select { flex: 1; padding: 12px 10px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; background: var(--cream); color: var(--charcoal); outline: none; cursor: pointer; }
+  .conv-arrow { font-size: 1.4rem; color: var(--muted); cursor: pointer; padding: 0 4px; transition: color 0.15s; flex-shrink: 0; }
+  .conv-arrow:hover { color: var(--terracotta); }
+  .conv-result { font-family: 'DM Mono', monospace; font-size: 2rem; font-weight: 300; text-align: center; color: var(--charcoal); padding: 16px; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); letter-spacing: 1px; }
+  .conv-result span { font-size: 0.9rem; color: var(--muted); display: block; margin-top: 4px; font-family: 'DM Sans', sans-serif; }
+
+  @media (max-width: 600px) {
+  @media (max-width: 600px) {
+    .timers-grid { grid-template-columns: 1fr; }
+    .app { padding: 12px; }
+    .clock-block .time { font-size: 1.6rem; }
+    header h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="alarm-overlay" id="alarm-overlay"></div>
+<div class="alarm-banner" id="alarm-banner" style="display:none">
+  <div class="alarm-banner-text">⏰ TIME'S UP</div>
+  <div class="alarm-banner-label" id="alarm-label">Timer done</div>
+  <button class="btn btn-primary" style="font-size:1rem;padding:12px 32px" onclick="dismissAlarm()">Dismiss</button>
+</div>
+<div class="app">
+  <header>
+    <div class="header-left">
+      <h1>Kitchen Hub</h1>
+      <div class="tagline">Your fridge, upgraded</div>
+    </div>
+    <div class="clock-block">
+      <div class="time" id="clock">--:--</div>
+      <div class="date" id="dateStr"></div>
+    </div>
+  </header>
+
+  <nav>
+    <button class="active" onclick="showPanel('timers', this)">⏱ Timers</button>
+    <button onclick="showPanel('grocery', this)">🛒 Grocery</button>
+    <button onclick="showPanel('calendar', this)">📅 Calendar</button>
+    <button onclick="showPanel('recipes', this)">📖 Recipes</button>
+    <button onclick="showPanel('converter', this)">⚖️ Convert</button>
+  </nav>
+
+  <!-- TIMERS -->
+  <div class="panel active" id="panel-timers">
+    <div class="card">
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="showSubPanel('timers-sub', this)">⏱ Timers</button>
+        <button class="tab-btn" onclick="showSubPanel('stopwatch-sub', this)">⏱ Stopwatch</button>
+        <button class="tab-btn" onclick="showSubPanel('alarms-sub', this)">🔔 Alarms</button>
+      </div>
+
+      <!-- TIMERS SUB -->
+      <div class="sub-panel active" id="timers-sub">
+        <div class="timers-grid" id="timers-grid"></div>
+      </div>
+
+      <!-- STOPWATCH SUB -->
+      <div class="sub-panel" id="stopwatch-sub">
+        <div class="stopwatch-display" id="sw-display">00:00.0</div>
+        <div class="stopwatch-controls">
+          <button class="btn btn-primary" id="sw-btn" onclick="swStartStop()">▶ Start</button>
+          <button class="btn btn-ghost" onclick="swLap()" id="sw-lap-btn" disabled>Lap</button>
+          <button class="btn btn-ghost" onclick="swReset()">↺ Reset</button>
+        </div>
+        <ul class="lap-list" id="lap-list"></ul>
+      </div>
+
+      <!-- ALARMS SUB -->
+      <div class="sub-panel" id="alarms-sub">
+        <div id="alarm-list" style="margin-bottom:14px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input-field input-mini" type="time" id="new-alarm-time">
+          <input class="input-field input-mini" id="new-alarm-label" placeholder="Label e.g. Take chicken out">
+          <button class="btn btn-primary btn-sm" onclick="addAlarm()">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROCERY -->
+  <div class="panel" id="panel-grocery">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--sage)"></div> Grocery List</div>
+      <div class="grocery-sections">
+        <div class="section-pill active" onclick="filterGrocery('all', this)">All</div>
+        <div class="section-pill" onclick="filterGrocery('produce', this)">🥦 Produce</div>
+        <div class="section-pill" onclick="filterGrocery('dairy', this)">🧀 Dairy</div>
+        <div class="section-pill" onclick="filterGrocery('meat', this)">🥩 Meat</div>
+        <div class="section-pill" onclick="filterGrocery('pantry', this)">🥫 Pantry</div>
+        <div class="section-pill" onclick="filterGrocery('other', this)">📦 Other</div>
+      </div>
+      <div class="grocery-add">
+        <input class="input-field" id="grocery-input" placeholder="Add item..." onkeydown="if(event.key==='Enter')addGrocery()">
+        <select class="input-field" id="grocery-cat" style="flex:0;width:110px">
+          <option value="produce">Produce</option>
+          <option value="dairy">Dairy</option>
+          <option value="meat">Meat</option>
+          <option value="pantry">Pantry</option>
+          <option value="other">Other</option>
+        </select>
+        <button class="btn btn-primary" onclick="addGrocery()">Add</button>
+      </div>
+      <ul class="grocery-list" id="grocery-list"></ul>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="clearChecked()">Remove checked</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearAll()">Clear all</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="panel" id="panel-calendar">
+    <div class="card">
+          <!-- Google Calendar sync bar -->
+      <div class="gcal-bar">
+        <span style="font-size:1.1rem">📅</span>
+        <span class="gcal-status" id="gcal-status">Enter your Google API key to sync</span>
+        <button class="btn btn-sage btn-sm" onclick="toggleApiSetup()" id="gcal-btn">Setup</button>
+      </div>
+      <div id="gcal-setup" style="display:none;margin-bottom:12px;padding:12px;background:var(--cream);border-radius:10px;border:1px solid var(--border)">
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">Paste your Google Calendar API key below. <a href="https://console.cloud.google.com" target="_blank" style="color:var(--terracotta)">Get one free at console.cloud.google.com</a> → APIs & Services → Credentials → Create API Key → restrict to Calendar API.</div>
+        <div style="display:flex;gap:8px">
+          <input class="input-field input-mini" id="gcal-api-key" placeholder="AIza..." style="font-family:'DM Mono',monospace;font-size:0.75rem">
+          <button class="btn btn-primary btn-sm" onclick="saveAndSync()">Save & Sync</button>
+        </div>
+      </div>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
+        <div class="cal-month" id="cal-month-label"></div>
+        <button class="cal-nav" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Events</div>
+      <div id="events-list"></div>
+      <div class="event-add-row">
+        <input class="input-field input-mini" id="event-name" placeholder="Event name">
+        <input class="input-field input-mini" id="event-time" type="time">
+        <input class="input-field input-mini" id="event-color" type="color" value="#c4714a" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer">
+        <button class="btn btn-primary btn-sm" onclick="addEvent()">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECIPES -->
+  <div class="panel" id="panel-recipes">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--brown)"></div> Import Recipe with AI</div>
+      
+      <!-- Simple PDF upload -->
+      <div class="import-zone" id="import-zone"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleDrop(event)">
+        <input type="file" accept=".pdf" onchange="handleFileInput(event)">
+        <div class="import-icon">📄</div>
+        <div class="import-title">Drop a recipe PDF here</div>
+        <div class="import-sub">Click or drag to upload — stored and viewable anytime</div>
+      </div>
+      <div id="pdf-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--brown)"></div> Recipes</div>
+      <div class="recipes-search">
+        <input class="input-field" id="recipe-search" placeholder="Search recipes..." oninput="renderRecipes()">
+      </div>
+      <div id="recipes-list"></div>
+      <button class="btn btn-ghost" onclick="toggleAddRecipe()" style="width:100%;margin-top:4px">+ Add Recipe Manually</button>
+      <div class="add-recipe-form" id="add-recipe-form" style="display:none;margin-top:12px">
+        <h3>New Recipe</h3>
+        <div class="form-row">
+          <input class="input-field" id="r-name" placeholder="Recipe name" style="flex:2">
+          <input class="input-field" id="r-time" placeholder="⏱ e.g. 30 min" style="flex:1">
+          <input class="input-field" id="r-servings" placeholder="👤 Servings" style="flex:1">
+        </div>
+        <textarea class="input-field" id="r-ingredients" placeholder="Ingredients (one per line)"></textarea>
+        <textarea class="input-field" id="r-steps" placeholder="Steps (one per line)" style="margin-top:6px"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-primary" onclick="saveRecipe()">Save Recipe</button>
+          <button class="btn btn-ghost" onclick="toggleAddRecipe()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CONVERTER -->
+  <div class="panel" id="panel-converter">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Measurement Converter</div>
+      <div class="converter-categories" id="conv-cats"></div>
+      <div class="converter-row">
+        <input class="conv-input" type="number" id="conv-from-val" placeholder="0" oninput="doConvert()">
+        <select class="conv-select" id="conv-from-unit" onchange="doConvert()"></select>
+        <span class="conv-arrow" onclick="swapUnits()">⇄</span>
+        <select class="conv-select" id="conv-to-unit" onchange="doConvert()"></select>
+      </div>
+      <div class="conv-result" id="conv-result">—<span id="conv-result-label"></span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== CLOCK ==========
+function updateClock() {
+  const now = new Date();
+  let h = now.getHours(), m = now.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById('clock').textContent = `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('dateStr').textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ========== PANELS ==========
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ========== TIMERS ==========
+const timerState = [
+  {label:'Timer 1',remaining:0,running:false,interval:null,done:false},
+  {label:'Timer 2',remaining:0,running:false,interval:null,done:false},
+  {label:'Timer 3',remaining:0,running:false,interval:null,done:false},
+  {label:'Timer 4',remaining:0,running:false,interval:null,done:false},
+];
+function fmt(s) {
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  if(h) return `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+function renderTimers() {
+  const grid = document.getElementById('timers-grid');
+  grid.innerHTML = '';
+  timerState.forEach((t,i) => {
+    const cls = t.done?'done':t.running?'running':'';
+    const h = Math.floor(t.remaining/3600);
+    const m = Math.floor((t.remaining%3600)/60);
+    const s = t.remaining%60;
+    const slot = document.createElement('div');
+    slot.className = 'timer-slot';
+    slot.innerHTML = `
+      <div class="timer-display ${cls}" id="td-${i}">${fmt(t.remaining)}</div>
+      <input class="timer-label-input" value="${t.label}" onchange="timerState[${i}].label=this.value" placeholder="Label">
+      <div class="timer-input-row">
+        <input class="timer-digit-input" type="number" min="0" max="23" value="${h}" placeholder="00" id="th-${i}" onchange="setTimerFromInputs(${i})" title="Hours">
+        <span class="timer-sep">:</span>
+        <input class="timer-digit-input" type="number" min="0" max="59" value="${m}" placeholder="00" id="tm-${i}" onchange="setTimerFromInputs(${i})" title="Minutes">
+        <span class="timer-sep">:</span>
+        <input class="timer-digit-input" type="number" min="0" max="59" value="${s}" placeholder="00" id="ts-${i}" onchange="setTimerFromInputs(${i})" title="Seconds">
+      </div>
+      <div class="timer-controls">
+        <button class="btn btn-primary btn-sm" onclick="startStop(${i})">${t.running?'⏸ Pause':'▶ Start'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetTimer(${i})">↺</button>
+      </div>
+      <div class="preset-btns">
+        ${[1,3,5,10,15,20,30].map(m=>`<button class="btn btn-ghost btn-sm" onclick="setTimer(${i},${m*60})">${m}m</button>`).join('')}
+      </div>`;
+    grid.appendChild(slot);
+  });
+}
+
+function setTimerFromInputs(i) {
+  const h = parseInt(document.getElementById(`th-${i}`)?.value)||0;
+  const m = parseInt(document.getElementById(`tm-${i}`)?.value)||0;
+  const s = parseInt(document.getElementById(`ts-${i}`)?.value)||0;
+  clearInterval(timerState[i].interval);
+  timerState[i].remaining = h*3600 + m*60 + s;
+  timerState[i].running = false; timerState[i].done = false;
+  document.getElementById(`td-${i}`).textContent = fmt(timerState[i].remaining);
+}
+function setTimer(i,secs){clearInterval(timerState[i].interval);timerState[i].remaining=secs;timerState[i].running=false;timerState[i].done=false;renderTimers();}
+let alarmInterval = null;
+let alarmSound = null;
+
+function makeBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+}
+
+function triggerAlarm(label) {
+  document.getElementById('alarm-overlay').classList.add('active');
+  document.getElementById('alarm-banner').style.display = 'block';
+  document.getElementById('alarm-label').textContent = label;
+  makeBeep();
+  alarmInterval = setInterval(makeBeep, 1200);
+}
+
+function dismissAlarm() {
+  document.getElementById('alarm-overlay').classList.remove('active');
+  document.getElementById('alarm-banner').style.display = 'none';
+  clearInterval(alarmInterval);
+  // clear all done timers
+  timerState.forEach(t => { if(t.done) { t.done = false; } });
+  renderTimers();
+}
+
+function startStop(i){
+  const t=timerState[i];
+  if(t.running){clearInterval(t.interval);t.running=false;renderTimers();return;}
+  if(t.remaining<=0)return;
+  t.done=false;t.running=true;
+  t.interval=setInterval(()=>{
+    t.remaining--;
+    if(t.remaining<=0){
+      clearInterval(t.interval);t.running=false;t.done=true;
+      triggerAlarm(t.label);
+    }
+    updateTimerDisplay(i);
+  },1000);
+  renderTimers();
+}
+function updateTimerDisplay(i){
+  const el=document.getElementById(`td-${i}`);if(!el)return;
+  const t=timerState[i];
+  el.textContent=fmt(t.remaining);
+  el.className='timer-display '+(t.done?'done':t.running?'running':'');
+}
+function resetTimer(i){clearInterval(timerState[i].interval);timerState[i].remaining=0;timerState[i].running=false;timerState[i].done=false;renderTimers();}
+renderTimers();
+
+// ========== GROCERY ==========
+let groceryItems=JSON.parse(localStorage.getItem('kitchenGrocery')||'[]');
+let groceryFilter='all';
+function saveGrocery(){localStorage.setItem('kitchenGrocery',JSON.stringify(groceryItems));}
+function addGrocery(){
+  const inp=document.getElementById('grocery-input');
+  const cat=document.getElementById('grocery-cat').value;
+  const text=inp.value.trim();if(!text)return;
+  groceryItems.push({text,cat,checked:false,id:Date.now()});
+  inp.value='';saveGrocery();renderGrocery();
+}
+function toggleGrocery(id){const item=groceryItems.find(i=>i.id===id);if(item){item.checked=!item.checked;saveGrocery();renderGrocery();}}
+function deleteGrocery(id){groceryItems=groceryItems.filter(i=>i.id!==id);saveGrocery();renderGrocery();}
+function filterGrocery(cat,el){
+  groceryFilter=cat;
+  document.querySelectorAll('.section-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');renderGrocery();
+}
+function clearChecked(){groceryItems=groceryItems.filter(i=>!i.checked);saveGrocery();renderGrocery();}
+function clearAll(){if(confirm('Clear all items?')){groceryItems=[];saveGrocery();renderGrocery();}}
+function renderGrocery(){
+  const list=document.getElementById('grocery-list');
+  const filtered=groceryFilter==='all'?groceryItems:groceryItems.filter(i=>i.cat===groceryFilter);
+  if(!filtered.length){list.innerHTML='<li style="color:var(--muted);font-size:0.85rem;padding:12px 0">No items yet</li>';return;}
+  list.innerHTML=filtered.map(item=>`
+    <li class="grocery-item">
+      <div class="grocery-check ${item.checked?'checked':''}" onclick="toggleGrocery(${item.id})"></div>
+      <span class="grocery-text ${item.checked?'checked':''}">${item.text}</span>
+      <span style="font-size:0.65rem;color:var(--muted);margin-right:4px">${item.cat}</span>
+      <button class="grocery-del" onclick="deleteGrocery(${item.id})">✕</button>
+    </li>`).join('');
+}
+renderGrocery();
+
+// ========== GOOGLE CALENDAR ==========
+let calEvents=JSON.parse(localStorage.getItem('kitchenEvents')||'[]');
+let gcalSynced=false;
+let calDate=new Date();
+let selectedDate=new Date();
+
+function saveEvents(){localStorage.setItem('kitchenEvents',JSON.stringify(calEvents));}
+
+function toggleApiSetup() {
+  const s = document.getElementById('gcal-setup');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+  // pre-fill saved key
+  const saved = localStorage.getItem('gcalApiKey');
+  if(saved) document.getElementById('gcal-api-key').value = saved;
+}
+
+function saveAndSync() {
+  const key = document.getElementById('gcal-api-key').value.trim();
+  if(!key) return;
+  localStorage.setItem('gcalApiKey', key);
+  document.getElementById('gcal-setup').style.display = 'none';
+  syncGoogleCalendar();
+}
+
+async function syncGoogleCalendar() {
+  const apiKey = localStorage.getItem('gcalApiKey');
+  if(!apiKey) { toggleApiSetup(); return; }
+
+  const btn = document.getElementById('gcal-btn');
+  const status = document.getElementById('gcal-status');
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  status.className = 'gcal-status';
+  status.innerHTML = '<span class="sync-spinner">⟳</span> Fetching your Google Calendar...';
+
+  try {
+    const now = new Date();
+    const future = new Date(); future.setDate(future.getDate()+60);
+    const timeMin = encodeURIComponent(now.toISOString());
+    const timeMax = encodeURIComponent(future.toISOString());
+
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?key=${apiKey}&timeMin=${timeMin}&timeMax=${timeMax}&maxResults=100&singleEvents=true&orderBy=startTime`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    const colors = ['#7a9e7e','#c4714a','#d4a843','#6b9ec4','#9b7ec4'];
+    const gcalEvents = (data.items || []).map((item, i) => {
+      const start = item.start.dateTime || item.start.date;
+      const date = start.substring(0,10);
+      const time = item.start.dateTime ? new Date(item.start.dateTime).toTimeString().substring(0,5) : '';
+      return { name: item.summary || 'Untitled', date, time, color: colors[i % colors.length], source: 'google' };
+    });
+
+    calEvents = calEvents.filter(e => e.source !== 'google');
+    calEvents = calEvents.concat(gcalEvents);
+    saveEvents();
+
+    status.className = 'gcal-status synced';
+    status.textContent = `✓ Synced ${gcalEvents.length} events`;
+    btn.textContent = 'Refresh';
+    btn.disabled = false;
+    renderCalendar();
+
+  } catch(err) {
+    console.error(err);
+    status.className = 'gcal-status error';
+    status.textContent = '⚠ Failed — check your API key or enable the Calendar API in Google Cloud.';
+    btn.textContent = 'Setup';
+    btn.disabled = false;
+  }
+}
+
+// Auto-sync on load if key exists
+if(localStorage.getItem('gcalApiKey')) syncGoogleCalendar();
+
+function changeMonth(dir){calDate.setMonth(calDate.getMonth()+dir);renderCalendar();}
+
+function renderCalendar(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent=`${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
+  const grid=document.getElementById('cal-grid');
+  const today=new Date();
+  const firstDay=new Date(calDate.getFullYear(),calDate.getMonth(),1).getDay();
+  const daysInMonth=new Date(calDate.getFullYear(),calDate.getMonth()+1,0).getDate();
+  const daysInPrev=new Date(calDate.getFullYear(),calDate.getMonth(),0).getDate();
+  const dayNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let html=dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  for(let i=0;i<firstDay;i++){const d=daysInPrev-firstDay+1+i;html+=`<div class="cal-day other-month">${d}</div>`;}
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=today.getDate()===d&&today.getMonth()===calDate.getMonth()&&today.getFullYear()===calDate.getFullYear();
+    const isSelected=selectedDate.getDate()===d&&selectedDate.getMonth()===calDate.getMonth()&&selectedDate.getFullYear()===calDate.getFullYear();
+    const dateStr=`${calDate.getFullYear()}-${String(calDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasEvent=calEvents.some(e=>e.date===dateStr);
+    let cls='cal-day';
+    if(isToday)cls+=' today';else if(isSelected)cls+=' selected';
+    if(hasEvent)cls+=' has-event';
+    html+=`<div class="${cls}" onclick="selectDay(${d})">${d}</div>`;
+  }
+  const totalCells=Math.ceil((firstDay+daysInMonth)/7)*7;
+  let next=1;
+  for(let i=firstDay+daysInMonth;i<totalCells;i++){html+=`<div class="cal-day other-month">${next++}</div>`;}
+  grid.innerHTML=html;
+  renderEvents();
+}
+
+function selectDay(d){selectedDate=new Date(calDate.getFullYear(),calDate.getMonth(),d);renderCalendar();}
+
+function renderEvents(){
+  const dateStr=`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  const dayEvents=calEvents.filter(e=>e.date===dateStr);
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const label=`${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}`;
+  let html=`<div class="event-date-label">${label}</div>`;
+  if(!dayEvents.length)html+=`<div style="color:var(--muted);font-size:0.82rem;padding:6px 0">No events</div>`;
+  // Sort by time
+  const sorted = [...dayEvents].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  sorted.forEach((ev,idx)=>{
+    const isGoogle = ev.source === 'google';
+    html+=`
+      <div class="event-item">
+        <div class="event-color" style="background:${ev.color||'#c4714a'}"></div>
+        <div class="event-info" style="flex:1">
+          <div class="event-name">${ev.name}</div>
+          ${ev.time?`<div class="event-time">${ev.time}</div>`:''}
+          ${isGoogle?`<div class="event-source">Google Calendar</div>`:''}
+        </div>
+        ${!isGoogle?`<button class="grocery-del" onclick="deleteLocalEvent('${ev.date}','${ev.name}')">✕</button>`:''}
+      </div>`;
+  });
+  document.getElementById('events-list').innerHTML=html;
+}
+
+function addEvent(){
+  const name=document.getElementById('event-name').value.trim();
+  const time=document.getElementById('event-time').value;
+  const color=document.getElementById('event-color').value;
+  if(!name)return;
+  const dateStr=`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  calEvents.push({name,time,color,date:dateStr,source:'local'});
+  document.getElementById('event-name').value='';
+  saveEvents();renderCalendar();
+}
+
+function deleteLocalEvent(date, name){
+  calEvents=calEvents.filter(e=>!(e.date===date&&e.name===name&&e.source!=='google'));
+  saveEvents();renderCalendar();
+}
+
+renderCalendar();
+
+// ========== PDF STORAGE ==========
+let pdfFiles = JSON.parse(localStorage.getItem('kitchenPDFs') || '[]');
+
+function savePDFs() { localStorage.setItem('kitchenPDFs', JSON.stringify(pdfFiles)); }
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('import-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) storePDF(file);
+}
+function handleFileInput(e) {
+  const file = e.target.files[0];
+  if(file) storePDF(file);
+  e.target.value = '';
+}
+
+function storePDF(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    pdfFiles.push({
+      name: file.name.replace('.pdf',''),
+      data: e.target.result,
+      date: new Date().toLocaleDateString()
+    });
+    savePDFs();
+    renderPDFs();
+  };
+  reader.readAsDataURL(file);
+}
+
+function openPDF(idx) {
+  const pdf = pdfFiles[idx];
+  const win = window.open();
+  win.document.write(`<iframe src="${pdf.data}" style="width:100%;height:100vh;border:none"></iframe>`);
+}
+
+function deletePDF(idx) {
+  pdfFiles.splice(idx, 1);
+  savePDFs();
+  renderPDFs();
+}
+
+function renderPDFs() {
+  const list = document.getElementById('pdf-list');
+  if(!pdfFiles.length) { list.innerHTML = ''; return; }
+  list.innerHTML = pdfFiles.map((p,i) => `
+    <div class="pdf-item" onclick="openPDF(${i})">
+      <span class="pdf-icon">📄</span>
+      <span class="pdf-name">${p.name}</span>
+      <span class="pdf-date">${p.date}</span>
+      <button class="grocery-del" onclick="event.stopPropagation();deletePDF(${i})">✕</button>
+    </div>`).join('');
+}
+
+renderPDFs();
+
+// ========== SUB PANELS ==========
+function showSubPanel(id, btn) {
+  btn.closest('.card').querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+  btn.closest('.tab-row').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ========== STOPWATCH ==========
+let swRunning=false, swStart=0, swElapsed=0, swInterval=null, swLaps=[];
+
+function swFmt(ms) {
+  const total=Math.floor(ms/100);
+  const h=Math.floor(total/36000),m=Math.floor((total%36000)/600),s=Math.floor((total%600)/10),t=total%10;
+  if(h>0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${t}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${t}`;
+}
+
+function swStartStop() {
+  if(swRunning) {
+    clearInterval(swInterval); swElapsed += Date.now()-swStart; swRunning=false;
+    document.getElementById('sw-btn').textContent='▶ Resume';
+  } else {
+    swStart=Date.now(); swRunning=true;
+    swInterval=setInterval(()=>{
+      document.getElementById('sw-display').textContent=swFmt(swElapsed+Date.now()-swStart);
+    },100);
+    document.getElementById('sw-btn').textContent='⏸ Pause';
+    document.getElementById('sw-lap-btn').disabled=false;
+  }
+}
+
+function swLap() {
+  const t=swElapsed+Date.now()-swStart;
+  swLaps.push(t);
+  const list=document.getElementById('lap-list');
+  const li=document.createElement('li'); li.className='lap-item';
+  li.innerHTML=`<span class="lap-num">Lap ${swLaps.length}</span><span>${swFmt(t)}</span>`;
+  list.prepend(li);
+}
+
+function swReset() {
+  clearInterval(swInterval); swRunning=false; swElapsed=0; swLaps=[];
+  document.getElementById('sw-display').textContent='00:00.0';
+  document.getElementById('sw-btn').textContent='▶ Start';
+  document.getElementById('sw-lap-btn').disabled=true;
+  document.getElementById('lap-list').innerHTML='';
+}
+
+// ========== ALARMS ==========
+let alarms=JSON.parse(localStorage.getItem('kitchenAlarms')||'[]');
+let alarmCheckInterval=setInterval(checkAlarms,15000);
+
+function saveAlarms(){localStorage.setItem('kitchenAlarms',JSON.stringify(alarms));}
+
+function addAlarm(){
+  const time=document.getElementById('new-alarm-time').value;
+  const label=document.getElementById('new-alarm-label').value||'Alarm';
+  if(!time)return;
+  alarms.push({time,label,on:true,id:Date.now()});
+  document.getElementById('new-alarm-time').value='';
+  document.getElementById('new-alarm-label').value='';
+  saveAlarms();renderAlarms();
+}
+
+function toggleAlarm(id){
+  const a=alarms.find(a=>a.id===id);if(a)a.on=!a.on;
+  saveAlarms();renderAlarms();
+}
+
+function deleteAlarm(id){
+  alarms=alarms.filter(a=>a.id!==id);
+  saveAlarms();renderAlarms();
+}
+
+function checkAlarms(){
+  const now=new Date();
+  const cur=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  alarms.forEach(a=>{
+    if(a.on && a.time===cur && !a.fired){
+      a.fired=true; triggerAlarm(a.label);
+      setTimeout(()=>{a.fired=false;},70000);
+    }
+  });
+}
+
+function renderAlarms(){
+  const list=document.getElementById('alarm-list');
+  if(!alarms.length){list.innerHTML='<div style="color:var(--muted);font-size:0.82rem">No alarms set</div>';return;}
+  list.innerHTML=alarms.map(a=>`
+    <div class="alarm-item">
+      <div class="alarm-time-display">${a.time}</div>
+      <div class="alarm-label-text">${a.label}</div>
+      <button class="alarm-toggle ${a.on?'on':'off'}" onclick="toggleAlarm(${a.id})"></button>
+      <button class="grocery-del" onclick="deleteAlarm(${a.id})">✕</button>
+    </div>`).join('');
+}
+renderAlarms();
+
+// ========== CONVERTER ==========
+const convCategories = {
+  'Volume': {
+    units: ['tsp','tbsp','fl oz','cup','pint','quart','gallon','ml','L'],
+    toBase: [4.92892,14.7868,29.5735,236.588,473.176,946.353,3785.41,1,1000],
+  },
+  'Weight': {
+    units: ['g','kg','oz','lb'],
+    toBase: [1,1000,28.3495,453.592],
+  },
+  'Temperature': {
+    units: ['°F','°C','K'],
+    toBase: null, // special
+  },
+  'Length': {
+    units: ['mm','cm','m','inch','ft','yard'],
+    toBase: [1,10,1000,25.4,304.8,914.4],
+  },
+  'Pan Size': {
+    units: ['6 inch','8 inch','9 inch','10 inch','12 inch','9x13 pan','8x8 pan'],
+    toBase: [28.27,50.27,63.62,78.54,113.1,117,64], // area in sq inches
+  },
+};
+
+let convCat = 'Volume';
+
+function initConverter() {
+  const cats = document.getElementById('conv-cats');
+  cats.innerHTML = Object.keys(convCategories).map(c=>`
+    <div class="conv-cat ${c===convCat?'active':''}" onclick="setConvCat('${c}',this)">${c}</div>`).join('');
+  populateConvUnits();
+}
+
+function setConvCat(cat,el) {
+  convCat=cat;
+  document.querySelectorAll('.conv-cat').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  populateConvUnits();
+  doConvert();
+}
+
+function populateConvUnits() {
+  const units=convCategories[convCat].units;
+  const fromSel=document.getElementById('conv-from-unit');
+  const toSel=document.getElementById('conv-to-unit');
+  fromSel.innerHTML=units.map((u,i)=>`<option value="${i}">${u}</option>`).join('');
+  toSel.innerHTML=units.map((u,i)=>`<option value="${i}">${u}</option>`).join('');
+  toSel.selectedIndex=1;
+}
+
+function doConvert() {
+  const val=parseFloat(document.getElementById('conv-from-val').value);
+  if(isNaN(val)){document.getElementById('conv-result').innerHTML='—<span id="conv-result-label"></span>';return;}
+  const fi=parseInt(document.getElementById('conv-from-unit').value);
+  const ti=parseInt(document.getElementById('conv-to-unit').value);
+  const cat=convCategories[convCat];
+  const units=cat.units;
+  let result;
+
+  if(convCat==='Temperature') {
+    const from=units[fi],to=units[ti];
+    let c;
+    if(from==='°F') c=(val-32)*5/9;
+    else if(from==='K') c=val-273.15;
+    else c=val;
+    if(to==='°F') result=c*9/5+32;
+    else if(to==='K') result=c+273.15;
+    else result=c;
+  } else if(convCat==='Pan Size') {
+    const fromArea=cat.toBase[fi];
+    const toArea=cat.toBase[ti];
+    result=(val*fromArea/toArea);
+  } else {
+    const base=val*cat.toBase[fi];
+    result=base/cat.toBase[ti];
+  }
+
+  const display = Math.abs(result) >= 1000 ? result.toFixed(1) : Math.abs(result) < 0.01 ? result.toExponential(3) : parseFloat(result.toFixed(4));
+  document.getElementById('conv-result').innerHTML=`${display}<span>${val} ${units[fi]} = ${display} ${units[ti]}</span>`;
+}
+
+function swapUnits() {
+  const f=document.getElementById('conv-from-unit');
+  const t=document.getElementById('conv-to-unit');
+  const tmp=f.value; f.value=t.value; t.value=tmp;
+  doConvert();
+}
+
+initConverter();
+
+// ========== RECIPES ==========
+let recipes = JSON.parse(localStorage.getItem('kitchenRecipes')||'null') || [
+  {
+    name:'Pasta Aglio e Olio',time:'20 min',servings:'2',
+    ingredients:['200g spaghetti','4 cloves garlic','1/4 cup olive oil','Red pepper flakes','Salt & pepper','Parsley'],
+    steps:['Boil pasta in salted water until al dente','Slice garlic thin and toast in olive oil on low heat','Add pepper flakes, toss in drained pasta','Finish with parsley and pasta water to loosen']
+  },
+  {
+    name:'Scrambled Eggs',time:'5 min',servings:'1',
+    ingredients:['3 eggs','1 tbsp butter','Salt','Splash of milk (optional)'],
+    steps:['Whisk eggs with salt and milk','Melt butter in pan on medium-low','Add eggs and stir slowly until just set','Remove from heat while still slightly glossy']
+  },
+  {
+    name:'Ribeye Steak & Crispy Petite Gold Potatoes',time:'~1 hr 30 min',servings:'2',
+    ingredients:[
+      '1 boneless ribeye steak (~1.46 lbs)',
+      '2 tbsp Kinder\'s Buttery Steakhouse rub',
+      '1 tbsp olive oil (for steak)',
+      '3 tbsp unsalted butter',
+      '5 cloves garlic, smashed (skin on is fine)',
+      '1 bag petite gold potatoes, halved',
+      '2 tbsp olive oil (for potatoes)',
+      '1 tsp garlic powder',
+      '1 tsp salt and pepper',
+      '3 tbsp grated parmesan cheese',
+      'Cooking spray (Pam)'
+    ],
+    steps:[
+      'Pull ribeye from fridge, pat COMPLETELY dry with paper towels. Drizzle olive oil on both sides, coat generously with Kinder\'s rub, press it in. Rest on counter uncovered for 45 min.',
+      'Preheat oven to 425°F. Halve potatoes (no peeling). Toss with olive oil, garlic powder, salt & pepper. Spray foil-lined baking sheet with Pam, spread cut-side DOWN in single layer.',
+      'Bake potatoes 20 min WITHOUT touching. Flip, sprinkle parmesan on top, bake 5 more min until parmesan is crispy. Toss in bowl with remaining seasoning.',
+      'Heat enameled cast iron skillet on medium-high for 2–3 min. Add thin layer of oil, wait until it shimmers.',
+      'If ribeye has thick fat cap, hold on its side with tongs and press edge into pan 1–2 min until golden.',
+      'Lay steak flat in pan. DO NOT touch, move, or press it. Leave for 4 minutes until color creeps halfway up the side.',
+      'Flip steak ONCE. Add 3 tbsp butter and all 5 smashed garlic cloves. Drop heat to medium. Tilt pan so butter pools, baste top of steak continuously with a spoon for 3–4 min.',
+      'Pull at 130–135°F internal temp for medium-rare (or ~10–11 min total cook time). Place on cutting board, tent loosely with foil. REST 10 FULL MINUTES — do not cut early.',
+      'Spoon garlic butter drippings over rested steak. Pile crispy parmesan potatoes on the side. Enjoy!'
+    ]
+  },
+];
+function saveRecipes(){localStorage.setItem('kitchenRecipes',JSON.stringify(recipes));}
+function toggleAddRecipe(){const f=document.getElementById('add-recipe-form');f.style.display=f.style.display==='none'?'block':'none';}
+function saveRecipe(){
+  const name=document.getElementById('r-name').value.trim();if(!name)return;
+  recipes.push({
+    name,time:document.getElementById('r-time').value,
+    servings:document.getElementById('r-servings').value,
+    ingredients:document.getElementById('r-ingredients').value.split('\n').filter(Boolean),
+    steps:document.getElementById('r-steps').value.split('\n').filter(Boolean),
+  });
+  ['r-name','r-time','r-servings','r-ingredients','r-steps'].forEach(id=>document.getElementById(id).value='');
+  toggleAddRecipe();saveRecipes();renderRecipes();
+}
+function deleteRecipe(idx){recipes.splice(idx,1);saveRecipes();renderRecipes();}
+function renderRecipes(){
+  const q=document.getElementById('recipe-search').value.toLowerCase();
+  const filtered=recipes.filter(r=>r.name.toLowerCase().includes(q));
+  const list=document.getElementById('recipes-list');
+  if(!filtered.length){list.innerHTML='<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">No recipes found</div>';return;}
+  list.innerHTML=filtered.map((r,i)=>`
+    <div class="recipe-card" id="rc-${i}">
+      <div class="recipe-header" onclick="toggleRecipe(${i})">
+        <div>
+          <div class="recipe-title">${r.name}</div>
+          <div class="recipe-meta">
+            ${r.time?`<span class="recipe-tag">⏱ ${r.time}</span>`:''}
+            ${r.servings?`<span class="recipe-tag">👤 ${r.servings}</span>`:''}
+          </div>
+        </div>
+        <div class="recipe-expand">⌄</div>
+      </div>
+      <div class="recipe-body">
+        ${r.ingredients?.length?`<h4>Ingredients</h4><ul>${r.ingredients.map(ing=>`<li>${ing}</li>`).join('')}</ul>`:''}
+        ${r.steps?.length?`<h4>Steps</h4><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol>`:''}
+        <button class="btn btn-ghost btn-sm recipe-add-btn" onclick="event.stopPropagation();deleteRecipe(${i})">Remove</button>
+      </div>
+    </div>`).join('');
+}
+function toggleRecipe(i){document.getElementById(`rc-${i}`)?.classList.toggle('open');}
+renderRecipes();
+</script>
+</body>
+</html>
