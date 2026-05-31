@@ -216,6 +216,16 @@
   .weather-desc { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
   .weather-icon { font-size: 1.4rem; margin-bottom: 2px; }
 
+  /* Quick-add recipe sections */
+  .qr-section { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
+  .qr-section:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+  .qr-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  /* Recipe / PDF viewer overlay */
+  .rv-overlay { display: none; position: fixed; inset: 0; z-index: 8500; background: rgba(0,0,0,0.82); flex-direction: column; }
+  .rv-overlay.open { display: flex; }
+  .rv-header { padding: 12px 16px; display: flex; align-items: center; gap: 12px; background: var(--card-bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .rv-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; flex: 1; }
+  .rv-content { flex: 1; overflow: auto; background: white; }
   /* Browse panel */
   .browse-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
   .browse-tile { border: none; border-radius: 16px; padding: 28px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 12px; color: white; transition: all 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.18); font-family: 'DM Sans', sans-serif; }
@@ -245,6 +255,13 @@
 </head>
 <body>
 <div class="alarm-overlay" id="alarm-overlay"></div>
+<div class="rv-overlay" id="rv-overlay">
+  <div class="rv-header">
+    <div class="rv-title" id="rv-title"></div>
+    <button class="btn btn-ghost btn-sm" onclick="closeRecipeViewer()">✕ Close</button>
+  </div>
+  <div class="rv-content" id="rv-content"></div>
+</div>
 <div id="sleep-overlay" onclick="exitSleepMode()"></div>
 <div class="note-fs-overlay" id="note-fs-overlay">
   <div class="note-fs-inner" id="note-fs-inner">
@@ -392,6 +409,35 @@
         <div class="import-sub">Click or drag to upload — stored and viewable anytime</div>
       </div>
       <div id="pdf-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Quick Add</div>
+
+      <div class="qr-section">
+        <div class="qr-label">🔗 Save a Link</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="input-field" id="ql-name" placeholder="Name (optional)" style="flex:1;min-width:100px">
+          <input class="input-field" id="ql-url" placeholder="Paste URL here..." style="flex:2;min-width:160px" onkeydown="if(event.key==='Enter')saveQuickLink()">
+          <button class="btn btn-primary" onclick="saveQuickLink()">Save</button>
+        </div>
+      </div>
+
+      <div class="qr-section">
+        <div class="qr-label">📝 Paste Text</div>
+        <input class="input-field" id="qt-name" placeholder="Recipe name" style="margin-bottom:8px">
+        <textarea class="input-field" id="qt-text" placeholder="Paste any recipe text here..." style="min-height:90px;margin-bottom:8px"></textarea>
+        <button class="btn btn-primary" onclick="saveQuickText()">Save</button>
+      </div>
+
+      <div class="qr-section">
+        <div class="qr-label">📷 Upload Photo</div>
+        <input class="input-field" id="qp-name" placeholder="Recipe name (optional)" style="margin-bottom:8px">
+        <label style="display:block;border:2px dashed var(--border);border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:var(--warm-white);font-size:0.88rem;color:var(--muted)">
+          📷 Tap to choose a photo
+          <input type="file" accept="image/*" style="display:none" onchange="saveQuickPhoto(this)">
+        </label>
+      </div>
     </div>
 
     <div class="card">
@@ -977,8 +1023,7 @@ function storePDF(file) {
 
 function openPDF(idx) {
   const pdf = pdfFiles[idx];
-  const win = window.open();
-  win.document.write(`<iframe src="${pdf.data}" style="width:100%;height:100vh;border:none"></iframe>`);
+  openRecipeViewer(pdf.name, `<iframe src="${pdf.data}" style="width:100%;height:100%;border:none;display:block"></iframe>`);
 }
 
 function deletePDF(idx) {
@@ -1057,29 +1102,107 @@ function saveRecipe(){
 function deleteRecipe(idx){recipes.splice(idx,1);saveRecipes();renderRecipes();}
 function renderRecipes(){
   const q=document.getElementById('recipe-search').value.toLowerCase();
-  const filtered=recipes.filter(r=>r.name.toLowerCase().includes(q));
+  const indexed=recipes.map((r,i)=>({r,i})).filter(({r})=>r.name.toLowerCase().includes(q));
   const list=document.getElementById('recipes-list');
-  if(!filtered.length){list.innerHTML='<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">No recipes found</div>';return;}
-  list.innerHTML=filtered.map((r,i)=>`
-    <div class="recipe-card" id="rc-${i}">
-      <div class="recipe-header" onclick="toggleRecipe(${i})">
-        <div>
-          <div class="recipe-title">${r.name}</div>
+  if(!indexed.length){list.innerHTML='<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">No recipes found</div>';return;}
+  list.innerHTML=indexed.map(({r,i})=>{
+    if(r.type==='link') return `
+      <div class="recipe-card">
+        <div class="recipe-header" style="cursor:default">
+          <div style="flex:1">
+            <div class="recipe-title">${r.name}</div>
+            <div class="recipe-meta"><span class="recipe-tag">🔗 Link</span>${r.date?`<span class="recipe-tag">${r.date}</span>`:''}</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="window.location.href='${r.url}'">Open →</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteRecipe(${i})" style="margin-left:4px">✕</button>
+        </div>
+      </div>`;
+    if(r.type==='text') return `
+      <div class="recipe-card" id="rc-${i}">
+        <div class="recipe-header" onclick="toggleRecipe(${i})">
+          <div><div class="recipe-title">${r.name}</div>
+          <div class="recipe-meta"><span class="recipe-tag">📝 Text</span>${r.date?`<span class="recipe-tag">${r.date}</span>`:''}</div></div>
+          <div class="recipe-expand">⌄</div>
+        </div>
+        <div class="recipe-body">
+          <pre style="white-space:pre-wrap;font-family:'DM Sans',sans-serif;font-size:0.88rem;line-height:1.6;overflow-x:auto">${r.text.replace(/</g,'&lt;')}</pre>
+          <button class="btn btn-ghost btn-sm recipe-add-btn" onclick="event.stopPropagation();deleteRecipe(${i})">Remove</button>
+        </div>
+      </div>`;
+    if(r.type==='image') return `
+      <div class="recipe-card" id="rc-${i}">
+        <div class="recipe-header" onclick="toggleRecipe(${i})">
+          <div><div class="recipe-title">${r.name}</div>
+          <div class="recipe-meta"><span class="recipe-tag">📷 Photo</span>${r.date?`<span class="recipe-tag">${r.date}</span>`:''}</div></div>
+          <div class="recipe-expand">⌄</div>
+        </div>
+        <div class="recipe-body">
+          <img src="${r.image}" style="width:100%;border-radius:8px;margin-bottom:10px;cursor:pointer" onclick="openRecipeViewer('${r.name}','<img src=\\'${r.image}\\' style=\\'width:100%;display:block\\'>')">
+          <button class="btn btn-ghost btn-sm recipe-add-btn" onclick="event.stopPropagation();deleteRecipe(${i})">Remove</button>
+        </div>
+      </div>`;
+    return `
+      <div class="recipe-card" id="rc-${i}">
+        <div class="recipe-header" onclick="toggleRecipe(${i})">
+          <div><div class="recipe-title">${r.name}</div>
           <div class="recipe-meta">
             ${r.time?`<span class="recipe-tag">⏱ ${r.time}</span>`:''}
             ${r.servings?`<span class="recipe-tag">👤 ${r.servings}</span>`:''}
-          </div>
+          </div></div>
+          <div class="recipe-expand">⌄</div>
         </div>
-        <div class="recipe-expand">⌄</div>
-      </div>
-      <div class="recipe-body">
-        ${r.ingredients?.length?`<h4>Ingredients</h4><ul>${r.ingredients.map(ing=>`<li>${ing}</li>`).join('')}</ul>`:''}
-        ${r.steps?.length?`<h4>Steps</h4><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol>`:''}
-        <button class="btn btn-ghost btn-sm recipe-add-btn" onclick="event.stopPropagation();deleteRecipe(${i})">Remove</button>
-      </div>
-    </div>`).join('');
+        <div class="recipe-body">
+          ${r.ingredients?.length?`<h4>Ingredients</h4><ul>${r.ingredients.map(ing=>`<li>${ing}</li>`).join('')}</ul>`:''}
+          ${r.steps?.length?`<h4>Steps</h4><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol>`:''}
+          <button class="btn btn-ghost btn-sm recipe-add-btn" onclick="event.stopPropagation();deleteRecipe(${i})">Remove</button>
+        </div>
+      </div>`;
+  }).join('');
 }
 function toggleRecipe(i){document.getElementById(`rc-${i}`)?.classList.toggle('open');}
+
+// ========== RECIPE VIEWER OVERLAY ==========
+function openRecipeViewer(title, html) {
+  document.getElementById('rv-title').textContent = title;
+  document.getElementById('rv-content').innerHTML = html;
+  document.getElementById('rv-overlay').classList.add('open');
+}
+function closeRecipeViewer() {
+  document.getElementById('rv-overlay').classList.remove('open');
+  document.getElementById('rv-content').innerHTML = '';
+}
+
+// ========== QUICK ADD ==========
+function saveQuickLink() {
+  const url = document.getElementById('ql-url').value.trim();
+  if (!url) return;
+  const name = document.getElementById('ql-name').value.trim() || url;
+  recipes.push({ type: 'link', name, url, date: new Date().toLocaleDateString() });
+  document.getElementById('ql-name').value = '';
+  document.getElementById('ql-url').value = '';
+  saveRecipes(); renderRecipes();
+}
+function saveQuickText() {
+  const text = document.getElementById('qt-text').value.trim();
+  if (!text) return;
+  const name = document.getElementById('qt-name').value.trim() || 'Recipe ' + (recipes.length + 1);
+  recipes.push({ type: 'text', name, text, date: new Date().toLocaleDateString() });
+  document.getElementById('qt-name').value = '';
+  document.getElementById('qt-text').value = '';
+  saveRecipes(); renderRecipes();
+}
+function saveQuickPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const name = document.getElementById('qp-name').value.trim() || file.name.replace(/\.[^.]+$/, '');
+  const reader = new FileReader();
+  reader.onload = e => {
+    recipes.push({ type: 'image', name, image: e.target.result, date: new Date().toLocaleDateString() });
+    document.getElementById('qp-name').value = '';
+    input.value = '';
+    saveRecipes(); renderRecipes();
+  };
+  reader.readAsDataURL(file);
+}
 renderRecipes();
 
 // ========== NOTES ==========
