@@ -276,6 +276,9 @@
   </header>
 
   <!-- WEATHER -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button onclick="toggleWeather()" id="wx-toggle" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:5px 12px">🌤 Weather ▾</button>
+  </div>
   <div class="weather-bar" id="weather-bar">
     <div class="weather-card" id="wx-harrison"><div class="weather-icon">🌤</div><div class="weather-city">Harrison</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
     <div class="weather-card" id="wx-cincinnati"><div class="weather-icon">🌤</div><div class="weather-city">Cincinnati</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
@@ -456,7 +459,21 @@ async function fetchWeather() {
 }
 
 fetchWeather();
-setInterval(fetchWeather, 30 * 60 * 1000); // refresh every 30 min
+setInterval(fetchWeather, 30 * 60 * 1000);
+
+function toggleWeather() {
+  const bar = document.getElementById('weather-bar');
+  const btn = document.getElementById('wx-toggle');
+  const hidden = bar.style.display === 'none';
+  bar.style.display = hidden ? 'flex' : 'none';
+  btn.textContent = hidden ? '🌤 Weather ▾' : '🌤 Weather ▸';
+  localStorage.setItem('wxOpen', hidden ? '1' : '0');
+}
+// restore collapsed state
+if (localStorage.getItem('wxOpen') === '0') {
+  document.getElementById('weather-bar').style.display = 'none';
+  document.getElementById('wx-toggle').textContent = '🌤 Weather ▸';
+}
 
 // ========== CLOCK ==========
 function updateClock() {
