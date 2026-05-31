@@ -130,18 +130,28 @@
   .add-recipe-form { padding: 16px; background: var(--cream); border-radius: 10px; border: 1px dashed var(--border); margin-bottom: 12px; }
   .add-recipe-form h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 12px; }
 
-  /* Notes */
-  .notes-grid { columns: 2; column-gap: 14px; }
-  @media (max-width: 520px) { .notes-grid { columns: 1; } }
-  .note-card { break-inside: avoid; border-radius: 6px; padding: 14px 14px 10px; margin-bottom: 14px; box-shadow: 2px 4px 12px rgba(0,0,0,0.09); position: relative; transition: box-shadow 0.2s; }
-  .note-card:hover { box-shadow: 3px 6px 18px rgba(0,0,0,0.13); }
-  .note-textarea { width: 100%; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.6; resize: none; outline: none; color: var(--charcoal); min-height: 72px; display: block; }
-  .note-del { position: absolute; top: 7px; right: 8px; background: none; border: none; cursor: pointer; font-size: 0.9rem; color: rgba(0,0,0,0.25); opacity: 0; transition: opacity 0.15s; line-height: 1; padding: 2px 4px; border-radius: 4px; }
-  .note-card:hover .note-del { opacity: 1; }
-  .note-del:hover { background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); }
-  .note-colors { display: flex; gap: 5px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.07); }
-  .note-color-dot { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s; flex-shrink: 0; }
-  .note-color-dot:hover, .note-color-dot.active { transform: scale(1.3); border-color: rgba(0,0,0,0.2); }
+  /* Notes board */
+  .notes-board { position: relative; min-height: 660px; background: #c4935a; background-image: radial-gradient(ellipse at 22% 28%, rgba(90,50,5,0.22) 0%, transparent 52%), radial-gradient(ellipse at 78% 72%, rgba(70,40,5,0.16) 0%, transparent 45%), radial-gradient(ellipse at 55% 10%, rgba(150,90,30,0.14) 0%, transparent 38%); border-radius: 14px; border: 3px solid #a07840; box-shadow: inset 0 2px 10px rgba(0,0,0,0.18); overflow: hidden; }
+  .notes-fab { position: fixed; bottom: 28px; right: 28px; width: 60px; height: 60px; border-radius: 50%; background: var(--terracotta); color: white; border: none; font-size: 2.2rem; line-height: 60px; text-align: center; cursor: pointer; box-shadow: 0 4px 18px rgba(0,0,0,0.25); z-index: 500; transition: transform 0.15s, box-shadow 0.15s; padding: 0; }
+  .notes-fab:hover { transform: scale(1.1); box-shadow: 0 7px 24px rgba(0,0,0,0.3); }
+  .sticky-note { position: absolute; width: 230px; border-radius: 3px 3px 6px 6px; box-shadow: 3px 5px 16px rgba(0,0,0,0.2), 0 1px 4px rgba(0,0,0,0.1); user-select: none; }
+  .sticky-note.sn-dragging { box-shadow: 10px 16px 32px rgba(0,0,0,0.3) !important; transform: rotate(1.5deg) scale(1.03); z-index: 9999 !important; cursor: grabbing !important; }
+  .sn-header { height: 32px; border-radius: 3px 3px 0 0; display: flex; align-items: center; padding: 0 6px; cursor: grab; gap: 2px; }
+  .sn-btn { background: none; border: none; cursor: pointer; color: rgba(0,0,0,0.38); font-size: 0.88rem; padding: 3px 5px; border-radius: 3px; line-height: 1; flex-shrink: 0; }
+  .sn-btn:hover { background: rgba(0,0,0,0.1); color: rgba(0,0,0,0.65); }
+  .sn-canvas { display: block; width: 100%; cursor: crosshair; touch-action: none; background: rgba(255,255,255,0.28); }
+  .sn-text { width: 100%; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; line-height: 1.55; resize: none; outline: none; color: var(--charcoal); min-height: 52px; padding: 8px 10px 4px; display: block; }
+  .sn-footer { display: flex; align-items: center; gap: 5px; padding: 4px 8px 7px; }
+  .nc-dot { width: 13px; height: 13px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.12s; flex-shrink: 0; }
+  .nc-dot:hover { transform: scale(1.25); }
+  .nc-dot.active { border-color: rgba(0,0,0,0.38); transform: scale(1.18); }
+  /* Note fullscreen overlay */
+  .note-fs-overlay { display: none; position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.65); align-items: center; justify-content: center; }
+  .note-fs-inner { width: calc(100vw - 24px); height: calc(100vh - 24px); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.45); }
+  .note-fs-header { padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .note-fs-canvas { flex: 1; cursor: crosshair; touch-action: none; display: block; width: 100%; min-height: 0; }
+  .note-fs-text { border: none; background: rgba(255,255,255,0.35); font-family: 'DM Sans', sans-serif; font-size: 1rem; resize: none; outline: none; color: var(--charcoal); padding: 12px 16px; min-height: 88px; max-height: 150px; flex-shrink: 0; }
+  .note-fs-divider { height: 1px; background: rgba(0,0,0,0.1); flex-shrink: 0; }
   .form-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .form-row .input-field { min-width: 120px; }
   textarea.input-field { resize: vertical; min-height: 60px; }
@@ -182,6 +192,20 @@
 </head>
 <body>
 <div class="alarm-overlay" id="alarm-overlay"></div>
+<div class="note-fs-overlay" id="note-fs-overlay">
+  <div class="note-fs-inner" id="note-fs-inner">
+    <div class="note-fs-header" id="note-fs-header">
+      <div style="display:flex;gap:6px;align-items:center" id="note-fs-colors"></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm" onclick="clearFsDrawing()">Clear drawing</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeFullscreen()" style="margin-left:6px">✕ Close</button>
+    </div>
+    <div class="note-fs-divider"></div>
+    <canvas class="note-fs-canvas" id="note-fs-canvas"></canvas>
+    <div class="note-fs-divider"></div>
+    <textarea class="note-fs-text" id="note-fs-text" placeholder="Type a note here..."></textarea>
+  </div>
+</div>
 <div class="alarm-banner" id="alarm-banner" style="display:none">
   <div class="alarm-banner-text">⏰ TIME'S UP</div>
   <div class="alarm-banner-label" id="alarm-label">Timer done</div>
@@ -324,11 +348,8 @@
 
   <!-- NOTES -->
   <div class="panel" id="panel-notes">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--charcoal)">Notes</div>
-      <button class="btn btn-primary" onclick="addNote()">+ New note</button>
-    </div>
-    <div class="notes-grid" id="notes-grid"></div>
+    <div class="notes-board" id="notes-board"></div>
+    <button class="notes-fab" onclick="addNote()">+</button>
   </div>
 </div>
 
@@ -884,57 +905,194 @@ function toggleRecipe(i){document.getElementById(`rc-${i}`)?.classList.toggle('o
 renderRecipes();
 
 // ========== NOTES ==========
-const NOTE_COLORS = ['#fef9c3','#fde8d3','#dceedd','#e9e4f5','#faf8f4','#fce4ec'];
+const NOTE_COLORS = ['#fef9c3','#fde8d3','#dceedd','#e9e4f5','#fce4ec','#fffde7'];
 let notes = JSON.parse(localStorage.getItem('kitchenNotes') || '[]');
+let noteMaxZ = 10;
+let activeFsId = null;
+let fsCtx = null;
+let snDrawing = false;
+let noteDragState = null;
 
 function saveNotes() { localStorage.setItem('kitchenNotes', JSON.stringify(notes)); }
 
+function noteHeaderColor(hex) {
+  try {
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return `rgba(${Math.round(r*.78)},${Math.round(g*.78)},${Math.round(b*.78)},0.65)`;
+  } catch(e) { return 'rgba(0,0,0,0.1)'; }
+}
+
 function addNote() {
-  const color = NOTE_COLORS[notes.length % NOTE_COLORS.length];
-  notes.unshift({ id: Date.now(), text: '', color });
-  saveNotes();
-  renderNotes();
-  setTimeout(() => { const t = document.querySelector('.note-textarea'); if(t) t.focus(); }, 40);
-}
-
-function updateNoteText(id, text) {
-  const n = notes.find(n => n.id === id);
-  if (n) { n.text = text; saveNotes(); }
-}
-
-function setNoteColor(id, color) {
-  const n = notes.find(n => n.id === id);
-  if (!n) return;
-  n.color = color;
-  saveNotes();
-  renderNotes();
+  const offset = (notes.length % 10) * 28;
+  notes.push({ id: Date.now(), x: 24+offset, y: 24+offset, color: NOTE_COLORS[notes.length % NOTE_COLORS.length], text:'', drawing:null, z:++noteMaxZ });
+  saveNotes(); renderNotes();
 }
 
 function deleteNote(id) {
-  if (notes.find(n => n.id === id)?.text && !confirm('Delete this note?')) return;
   notes = notes.filter(n => n.id !== id);
-  saveNotes();
-  renderNotes();
+  saveNotes(); renderNotes();
 }
 
-function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function bringNoteToFront(id) {
+  const n = notes.find(n=>n.id===id); if(!n)return;
+  n.z = ++noteMaxZ;
+  const el = document.getElementById('sn-'+id); if(el) el.style.zIndex = n.z;
+}
 
-function renderNotes() {
-  const grid = document.getElementById('notes-grid');
-  if (!notes.length) {
-    grid.innerHTML = `<div style="color:var(--muted);font-size:0.88rem;padding:20px 0">No notes yet — hit + New note to start.</div>`;
-    return;
+function setNoteColor(id, color) {
+  const n = notes.find(n=>n.id===id); if(!n)return;
+  n.color=color; saveNotes();
+  const el=document.getElementById('sn-'+id); if(!el)return;
+  el.style.background=color;
+  el.querySelector('.sn-header').style.background=noteHeaderColor(color);
+  el.querySelectorAll('.nc-dot').forEach(d=>d.classList.toggle('active',d.dataset.color===color));
+}
+
+function saveNoteText(id,val){const n=notes.find(n=>n.id===id);if(n){n.text=val;saveNotes();}}
+
+// ---- DRAG ----
+document.addEventListener('mousemove', e => {
+  if(!noteDragState)return;
+  const dx=e.clientX-noteDragState.cx, dy=e.clientY-noteDragState.cy;
+  const el=document.getElementById('sn-'+noteDragState.id); if(!el)return;
+  const board=document.getElementById('notes-board');
+  el.style.left=Math.max(0,Math.min(board.offsetWidth-el.offsetWidth,noteDragState.ox+dx))+'px';
+  el.style.top=Math.max(0,Math.min(board.offsetHeight-el.offsetHeight,noteDragState.oy+dy))+'px';
+});
+document.addEventListener('touchmove', e => {
+  if(!noteDragState)return;
+  const dx=e.touches[0].clientX-noteDragState.cx, dy=e.touches[0].clientY-noteDragState.cy;
+  const el=document.getElementById('sn-'+noteDragState.id); if(!el)return;
+  const board=document.getElementById('notes-board');
+  el.style.left=Math.max(0,Math.min(board.offsetWidth-el.offsetWidth,noteDragState.ox+dx))+'px';
+  el.style.top=Math.max(0,Math.min(board.offsetHeight-el.offsetHeight,noteDragState.oy+dy))+'px';
+  e.preventDefault();
+},{passive:false});
+function endNoteDrag(){
+  if(!noteDragState)return;
+  const el=document.getElementById('sn-'+noteDragState.id);
+  if(el){el.classList.remove('sn-dragging');const n=notes.find(n=>n.id===noteDragState.id);if(n){n.x=parseFloat(el.style.left);n.y=parseFloat(el.style.top);saveNotes();}}
+  noteDragState=null;
+}
+document.addEventListener('mouseup',endNoteDrag);
+document.addEventListener('touchend',endNoteDrag);
+
+function startNoteDrag(e,id){
+  if(e.target.tagName==='CANVAS'||e.target.tagName==='TEXTAREA'||e.target.classList.contains('sn-btn')||e.target.classList.contains('nc-dot'))return;
+  bringNoteToFront(id);
+  const el=document.getElementById('sn-'+id);
+  noteDragState={id,cx:e.touches?e.touches[0].clientX:e.clientX,cy:e.touches?e.touches[0].clientY:e.clientY,ox:parseFloat(el.style.left)||0,oy:parseFloat(el.style.top)||0};
+  el.classList.add('sn-dragging'); e.preventDefault();
+}
+
+// ---- DRAWING on small canvas ----
+function cnvPos(e,canvas){
+  const r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height;
+  const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;
+  return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};
+}
+function snPointerDown(e,id){
+  e.stopPropagation(); bringNoteToFront(id);
+  const canvas=document.getElementById('snc-'+id); if(!canvas)return;
+  snDrawing=true;
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#2a2520';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+  const p=cnvPos(e,canvas);ctx.beginPath();ctx.moveTo(p.x,p.y);canvas._ctx=ctx;e.preventDefault();
+}
+function snPointerMove(e,id){
+  if(!snDrawing)return;
+  const canvas=document.getElementById('snc-'+id); if(!canvas||!canvas._ctx)return;
+  const p=cnvPos(e,canvas);canvas._ctx.lineTo(p.x,p.y);canvas._ctx.stroke();canvas._ctx.moveTo(p.x,p.y);e.preventDefault();
+}
+function snPointerUp(e,id){
+  if(!snDrawing)return; snDrawing=false;
+  const canvas=document.getElementById('snc-'+id); if(!canvas)return;
+  const n=notes.find(n=>n.id===id); if(n){n.drawing=canvas.toDataURL();saveNotes();}
+}
+function clearSnDrawing(id){
+  const canvas=document.getElementById('snc-'+id);
+  if(canvas)canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  const n=notes.find(n=>n.id===id);if(n){n.drawing=null;saveNotes();}
+}
+
+// ---- FULLSCREEN ----
+function openFullscreen(id){
+  const n=notes.find(n=>n.id===id); if(!n)return;
+  activeFsId=id;
+  const overlay=document.getElementById('note-fs-overlay'),inner=document.getElementById('note-fs-inner'),hdr=document.getElementById('note-fs-header');
+  inner.style.background=n.color; hdr.style.background=noteHeaderColor(n.color);
+  document.getElementById('note-fs-text').value=n.text||'';
+  document.getElementById('note-fs-colors').innerHTML=NOTE_COLORS.map(c=>`<div class="nc-dot ${c===n.color?'active':''}" data-color="${c}" style="background:${c}" onclick="setFsColor('${c}')"></div>`).join('');
+  overlay.style.display='flex';
+  requestAnimationFrame(()=>{
+    const canvas=document.getElementById('note-fs-canvas');
+    canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight;
+    fsCtx=canvas.getContext('2d');
+    fsCtx.strokeStyle='#2a2520';fsCtx.lineWidth=3;fsCtx.lineCap='round';fsCtx.lineJoin='round';
+    if(n.drawing){const img=new Image();img.onload=()=>fsCtx.drawImage(img,0,0,canvas.width,canvas.height);img.src=n.drawing;}
+  });
+}
+function setFsColor(color){
+  if(activeFsId===null)return;
+  setNoteColor(activeFsId,color);
+  document.getElementById('note-fs-inner').style.background=color;
+  document.getElementById('note-fs-header').style.background=noteHeaderColor(color);
+  document.querySelectorAll('#note-fs-colors .nc-dot').forEach(d=>d.classList.toggle('active',d.dataset.color===color));
+}
+function closeFullscreen(){
+  if(activeFsId!==null){
+    const n=notes.find(n=>n.id===activeFsId);
+    if(n){n.text=document.getElementById('note-fs-text').value;const c=document.getElementById('note-fs-canvas');n.drawing=c.toDataURL();saveNotes();}
   }
-  grid.innerHTML = notes.map(n => `
-    <div class="note-card" style="background:${n.color}">
-      <button class="note-del" onclick="deleteNote(${n.id})">✕</button>
-      <textarea class="note-textarea" placeholder="Write anything..." oninput="autoResize(this);updateNoteText(${n.id},this.value)" onblur="updateNoteText(${n.id},this.value)">${n.text}</textarea>
-      <div class="note-colors">
-        ${NOTE_COLORS.map(c => `<div class="note-color-dot ${c===n.color?'active':''}" style="background:${c}" onclick="setNoteColor(${n.id},'${c}')"></div>`).join('')}
+  document.getElementById('note-fs-overlay').style.display='none';
+  activeFsId=null; renderNotes();
+}
+function clearFsDrawing(){if(!fsCtx)return;const c=document.getElementById('note-fs-canvas');fsCtx.clearRect(0,0,c.width,c.height);}
+
+function setupFsCanvas(){
+  const canvas=document.getElementById('note-fs-canvas');
+  let drawing=false;
+  function pos(e){const r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};}
+  function start(e){if(!fsCtx)return;drawing=true;const p=pos(e);fsCtx.beginPath();fsCtx.moveTo(p.x,p.y);e.preventDefault();}
+  function move(e){if(!drawing||!fsCtx)return;const p=pos(e);fsCtx.lineTo(p.x,p.y);fsCtx.stroke();fsCtx.moveTo(p.x,p.y);e.preventDefault();}
+  function end(){drawing=false;}
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseup',end);canvas.addEventListener('mouseleave',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end);
+}
+
+// ---- RENDER ----
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+function renderNotes(){
+  const board=document.getElementById('notes-board');
+  if(!notes.length){board.innerHTML='<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.45);font-size:1rem;text-align:center;pointer-events:none">Tap + to drop a note</div>';return;}
+  noteMaxZ=Math.max(10,...notes.map(n=>n.z||1));
+  board.innerHTML=notes.map(n=>`
+    <div class="sticky-note" id="sn-${n.id}" style="left:${n.x||24}px;top:${n.y||24}px;background:${n.color};z-index:${n.z||1}"
+      onmousedown="startNoteDrag(event,${n.id})" ontouchstart="startNoteDrag(event,${n.id})">
+      <div class="sn-header" style="background:${noteHeaderColor(n.color)}">
+        <div style="flex:1"></div>
+        <button class="sn-btn" onclick="openFullscreen(${n.id})" title="Fullscreen + draw">⛶</button>
+        <button class="sn-btn" onclick="deleteNote(${n.id})" title="Delete">✕</button>
+      </div>
+      <canvas class="sn-canvas" id="snc-${n.id}" width="204" height="130"
+        onmousedown="snPointerDown(event,${n.id})" onmousemove="snPointerMove(event,${n.id})" onmouseup="snPointerUp(event,${n.id})" onmouseleave="snPointerUp(event,${n.id})"
+        ontouchstart="snPointerDown(event,${n.id})" ontouchmove="snPointerMove(event,${n.id})" ontouchend="snPointerUp(event,${n.id})"></canvas>
+      <textarea class="sn-text" placeholder="Write a note..." oninput="autoResize(this)" onblur="saveNoteText(${n.id},this.value)">${n.text||''}</textarea>
+      <div class="sn-footer">
+        ${NOTE_COLORS.map(c=>`<div class="nc-dot ${c===n.color?'active':''}" data-color="${c}" style="background:${c}" onclick="setNoteColor(${n.id},'${c}')"></div>`).join('')}
+        <button class="sn-btn" style="font-size:0.6rem;margin-left:auto" onclick="clearSnDrawing(${n.id})" title="Clear drawing">🗑</button>
       </div>
     </div>`).join('');
-  document.querySelectorAll('.note-textarea').forEach(autoResize);
+  notes.forEach(n=>{
+    if(!n.drawing)return;
+    const canvas=document.getElementById('snc-'+n.id);if(!canvas)return;
+    const img=new Image();img.onload=()=>canvas.getContext('2d').drawImage(img,0,0);img.src=n.drawing;
+  });
+  document.querySelectorAll('.sn-text').forEach(autoResize);
 }
+
+setupFsCanvas();
 renderNotes();
 </script>
 </body>
