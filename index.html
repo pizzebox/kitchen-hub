@@ -457,22 +457,40 @@ function setTimer(i,secs){clearInterval(timerState[i].interval);timerState[i].re
 let alarmInterval = null;
 let alarmSound = null;
 
+const ALARM_PHRASES = [
+  "Who let the dogs out? Woof woof woof woof! Timer's done!",
+  "Yippee ki yay! Your food is ready! Don't forget the oven!",
+  "Hey hey hey! Timer is up! Get to the kitchen!",
+  "Ding ding ding! Something's cooked! Turn off the oven!",
+  "Attention! Attention! Your timer has finished! This is not a drill!",
+  "Your food called. It said it's ready and please don't burn it.",
+  "Wakey wakey eggs and bakey! Timer's done!",
+  "BEHOLD! The timer hath expired! Go check the oven!",
+];
+let alarmPhraseIdx = 0;
+
 function makeBeep() {
+  // Shout a funny phrase
+  try {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const phrase = ALARM_PHRASES[alarmPhraseIdx % ALARM_PHRASES.length];
+      alarmPhraseIdx++;
+      const msg = new SpeechSynthesisUtterance(phrase);
+      msg.rate = 1.05; msg.pitch = 1.1; msg.volume = 1;
+      window.speechSynthesis.speak(msg);
+    }
+  } catch(e) {}
+  // Fanfare underneath the voice
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.2, 0.4].forEach(t => {
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc1.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
-      osc1.type = 'square'; osc1.frequency.value = 1100;
-      osc2.type = 'sine';   osc2.frequency.value = 1100;
-      gain.gain.setValueAtTime(0, ctx.currentTime + t);
-      gain.gain.linearRampToValueAtTime(0.7, ctx.currentTime + t + 0.01);
-      gain.gain.setValueAtTime(0.7, ctx.currentTime + t + 0.11);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + t + 0.16);
-      osc1.start(ctx.currentTime + t); osc1.stop(ctx.currentTime + t + 0.17);
-      osc2.start(ctx.currentTime + t); osc2.stop(ctx.currentTime + t + 0.17);
+    [[0,523],[0.13,659],[0.26,784],[0.39,1047]].forEach(([t,freq])=>{
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type='square'; osc.frequency.value=freq;
+      gain.gain.setValueAtTime(0.5, ctx.currentTime+t);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime+t+0.2);
+      osc.start(ctx.currentTime+t); osc.stop(ctx.currentTime+t+0.22);
     });
   } catch(e) {}
 }
@@ -482,7 +500,7 @@ function triggerAlarm(label) {
   document.getElementById('alarm-banner').style.display = 'block';
   document.getElementById('alarm-label').textContent = label;
   makeBeep();
-  alarmInterval = setInterval(makeBeep, 2000);
+  alarmInterval = setInterval(makeBeep, 5000);
 }
 
 function dismissAlarm() {
