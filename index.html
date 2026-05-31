@@ -1,3 +1,15 @@
+<!--
+  KITCHEN HUB — by Noah + Claude
+  ================================
+  LIVE:  https://pizzebox.github.io/kitchen-hub/
+  FILE:  C:\Users\noahj\Downloads\kitchen-dashboard (3).html  ← edit this
+
+  TO OPEN CLAUDE CODE AND CONTINUE WORKING:
+    1. Open Command Prompt (search "cmd" in Start)
+    2. Type:  cd Downloads
+    3. Type:  claude
+    That's it — Claude will remember this whole project.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -210,7 +222,8 @@
     <div class="note-fs-header" id="note-fs-header">
       <div style="display:flex;gap:6px;align-items:center" id="note-fs-colors"></div>
       <div style="flex:1"></div>
-      <button class="btn btn-ghost btn-sm" onclick="clearFsDrawing()">Clear drawing</button>
+      <button class="btn btn-ghost btn-sm" id="fs-eraser-btn" onclick="toggleFsEraser()">◻ Eraser</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearFsDrawing()" style="margin-left:4px">Clear</button>
       <button class="btn btn-ghost btn-sm" onclick="closeFullscreen()" style="margin-left:6px">✕ Close</button>
     </div>
     <div class="note-fs-divider"></div>
@@ -933,6 +946,7 @@ let notes = JSON.parse(localStorage.getItem('kitchenNotes') || '[]');
 let noteMaxZ = 10;
 let activeFsId = null;
 let fsCtx = null;
+let fsEraserMode = false;
 let snDrawing = false;
 let noteDragState = null;
 
@@ -1048,6 +1062,9 @@ function openFullscreen(id){
   inner.style.background=n.color; hdr.style.background=noteHeaderColor(n.color);
   document.getElementById('note-fs-text').value=n.text||'';
   document.getElementById('note-fs-colors').innerHTML=NOTE_COLORS.map(c=>`<div class="nc-dot ${c===n.color?'active':''}" data-color="${c}" style="background:${c}" onclick="setFsColor('${c}')"></div>`).join('');
+  fsEraserMode=false;
+  const eraserBtn=document.getElementById('fs-eraser-btn');
+  if(eraserBtn){eraserBtn.className='btn btn-ghost btn-sm';eraserBtn.textContent='◻ Eraser';}
   overlay.style.display='flex';
   // Double RAF guarantees flex layout is computed before reading dimensions
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -1089,12 +1106,25 @@ function closeFullscreen(){
 }
 function clearFsDrawing(){if(!fsCtx)return;const c=document.getElementById('note-fs-canvas');fsCtx.clearRect(0,0,c.width,c.height);}
 
+function toggleFsEraser(){
+  fsEraserMode=!fsEraserMode;
+  const btn=document.getElementById('fs-eraser-btn');
+  if(btn){
+    btn.className='btn btn-sm '+(fsEraserMode?'btn-primary':'btn-ghost');
+    btn.textContent=fsEraserMode?'◻ Eraser ✓':'◻ Eraser';
+  }
+}
+
 function setupFsCanvas(){
   const canvas=document.getElementById('note-fs-canvas');
   let drawing=false;
   function pos(e){const r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};}
-  function start(e){if(!fsCtx)return;drawing=true;const p=pos(e);fsCtx.beginPath();fsCtx.moveTo(p.x,p.y);e.preventDefault();}
-  function move(e){if(!drawing||!fsCtx)return;const p=pos(e);fsCtx.lineTo(p.x,p.y);fsCtx.stroke();fsCtx.moveTo(p.x,p.y);e.preventDefault();}
+  function applyMode(){
+    if(fsEraserMode){fsCtx.globalCompositeOperation='destination-out';fsCtx.lineWidth=26;}
+    else{fsCtx.globalCompositeOperation='source-over';fsCtx.strokeStyle='#2a2520';fsCtx.lineWidth=3;}
+  }
+  function start(e){if(!fsCtx)return;drawing=true;applyMode();const p=pos(e);fsCtx.beginPath();fsCtx.moveTo(p.x,p.y);e.preventDefault();}
+  function move(e){if(!drawing||!fsCtx)return;applyMode();const p=pos(e);fsCtx.lineTo(p.x,p.y);fsCtx.stroke();fsCtx.moveTo(p.x,p.y);e.preventDefault();}
   function end(){drawing=false;}
   canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseup',end);canvas.addEventListener('mouseleave',end);
   canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end);
