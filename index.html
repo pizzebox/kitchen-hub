@@ -341,6 +341,7 @@
     <button onclick="showPanel('recipes', this)">📖 Recipes</button>
     <button onclick="showPanel('notes', this)">📝 Notes</button>
     <button onclick="showPanel('browse', this)">🌐 Browse</button>
+    <button onclick="showPanel('convert', this)">⚖ Convert</button>
   </nav>
 
   <!-- TIMERS -->
@@ -493,6 +494,37 @@
   <div class="panel" id="panel-notes">
     <div class="notes-board" id="notes-board"></div>
     <button class="notes-fab" onclick="addNote()">+</button>
+  </div>
+
+  <!-- CONVERT -->
+  <div class="panel" id="panel-convert">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Unit Converter</div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <div class="section-pill active" onclick="setConvertCat('volume',this)">🥛 Volume</div>
+        <div class="section-pill" onclick="setConvertCat('weight',this)">⚖ Weight</div>
+        <div class="section-pill" onclick="setConvertCat('temp',this)">🌡 Temp</div>
+        <div class="section-pill" onclick="setConvertCat('length',this)">📏 Length</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <input class="input-field" id="conv-from-val" type="number" placeholder="0" oninput="doConvert('from')" style="font-size:1.4rem;font-family:'DM Mono',monospace;margin-bottom:8px">
+          <select class="input-field" id="conv-from-unit" onchange="doConvert('from')"></select>
+        </div>
+        <div style="font-size:1.8rem;color:var(--muted);flex-shrink:0">→</div>
+        <div style="flex:1;min-width:120px">
+          <input class="input-field" id="conv-to-val" type="number" placeholder="0" oninput="doConvert('to')" style="font-size:1.4rem;font-family:'DM Mono',monospace;margin-bottom:8px">
+          <select class="input-field" id="conv-to-unit" onchange="doConvert('from')"></select>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('conv-from-val').value='';document.getElementById('conv-to-val').value='';" style="margin-top:14px">Clear</button>
+    </div>
+
+    <!-- Quick reference card -->
+    <div class="card" id="conv-ref-card">
+      <div class="card-title"><div class="dot" style="background:var(--sage)"></div> Quick Reference</div>
+      <div id="conv-ref"></div>
+    </div>
   </div>
 
   <!-- BROWSE -->
@@ -1614,6 +1646,86 @@ function renderNotes(){
   });
   // no textarea on mini notes — editing is fullscreen only
 }
+
+// ========== UNIT CONVERTER ==========
+const CONV_CATS = {
+  volume: {
+    units: ['tsp','tbsp','fl oz','cup','pint','quart','gallon','ml','L'],
+    toBase: { tsp:4.92892, tbsp:14.7868, 'fl oz':29.5735, cup:236.588, pint:473.176, quart:946.353, gallon:3785.41, ml:1, L:1000 },
+    ref: [['1 tsp','5 ml'],['1 tbsp','15 ml / 3 tsp'],['1 fl oz','30 ml'],['1 cup','240 ml / 16 tbsp'],['1 pint','2 cups'],['1 quart','4 cups'],['1 gallon','16 cups']]
+  },
+  weight: {
+    units: ['oz','lb','g','kg'],
+    toBase: { oz:28.3495, lb:453.592, g:1, kg:1000 },
+    ref: [['1 oz','28 g'],['1 lb','454 g / 16 oz'],['1 kg','2.2 lb'],['100 g','3.5 oz']]
+  },
+  temp: {
+    units: ['°F','°C'],
+    toBase: null,
+    ref: [['32°F','0°C — Freezing'],['212°F','100°C — Boiling'],['350°F','177°C — Bake'],['375°F','190°C — Bake'],['400°F','204°C — Hot oven'],['425°F','218°C — Very hot']]
+  },
+  length: {
+    units: ['in','ft','cm','mm'],
+    toBase: { in:25.4, ft:304.8, cm:10, mm:1 },
+    ref: [['8" pan','20 cm'],['9" pan','23 cm'],['13" pan','33 cm'],['1 inch','2.54 cm']]
+  }
+};
+let _convCat = 'volume';
+
+function setConvertCat(cat, el) {
+  _convCat = cat;
+  document.querySelectorAll('#panel-convert .section-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const c = CONV_CATS[cat];
+  ['conv-from-unit','conv-to-unit'].forEach((id, i) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = c.units.map((u,j) => `<option value="${u}" ${(i===0?j===0:j===1)?'selected':''}>${u}</option>`).join('');
+  });
+  document.getElementById('conv-from-val').value = '';
+  document.getElementById('conv-to-val').value = '';
+  renderConvRef(cat);
+}
+
+function doConvert(dir) {
+  const c = CONV_CATS[_convCat];
+  const fromUnit = document.getElementById('conv-from-unit').value;
+  const toUnit = document.getElementById('conv-to-unit').value;
+  const fromVal = parseFloat(document.getElementById('conv-from-val').value);
+  const toVal = parseFloat(document.getElementById('conv-to-val').value);
+
+  if (_convCat === 'temp') {
+    if (dir === 'from' && !isNaN(fromVal)) {
+      const result = fromUnit === '°F' ? (fromVal - 32) * 5/9 : fromVal * 9/5 + 32;
+      document.getElementById('conv-to-val').value = Math.round(result * 10) / 10;
+    } else if (dir === 'to' && !isNaN(toVal)) {
+      const result = toUnit === '°F' ? (toVal - 32) * 5/9 : toVal * 9/5 + 32;
+      document.getElementById('conv-from-val').value = Math.round(result * 10) / 10;
+    }
+    return;
+  }
+
+  if (dir === 'from' && !isNaN(fromVal)) {
+    const inBase = fromVal * c.toBase[fromUnit];
+    const result = inBase / c.toBase[toUnit];
+    document.getElementById('conv-to-val').value = Math.round(result * 10000) / 10000;
+  } else if (dir === 'to' && !isNaN(toVal)) {
+    const inBase = toVal * c.toBase[toUnit];
+    const result = inBase / c.toBase[fromUnit];
+    document.getElementById('conv-from-val').value = Math.round(result * 10000) / 10000;
+  }
+}
+
+function renderConvRef(cat) {
+  const ref = CONV_CATS[cat].ref;
+  document.getElementById('conv-ref').innerHTML = ref.map(([a,b]) => `
+    <div style="display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);font-size:0.9rem">
+      <span style="font-family:'DM Mono',monospace;font-weight:500">${a}</span>
+      <span style="color:var(--muted)">${b}</span>
+    </div>`).join('');
+}
+
+// Init converter
+setConvertCat('volume', document.querySelector('#panel-convert .section-pill'));
 
 // ========== SPEECH (LOCAL VOSK SERVER) ==========
 let _kitchenMicRec = null;
