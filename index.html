@@ -128,6 +128,19 @@
   .recipe-add-btn { margin-top: 12px; }
   .add-recipe-form { padding: 16px; background: var(--cream); border-radius: 10px; border: 1px dashed var(--border); margin-bottom: 12px; }
   .add-recipe-form h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 12px; }
+
+  /* Notes */
+  .notes-grid { columns: 2; column-gap: 14px; }
+  @media (max-width: 520px) { .notes-grid { columns: 1; } }
+  .note-card { break-inside: avoid; border-radius: 6px; padding: 14px 14px 10px; margin-bottom: 14px; box-shadow: 2px 4px 12px rgba(0,0,0,0.09); position: relative; transition: box-shadow 0.2s; }
+  .note-card:hover { box-shadow: 3px 6px 18px rgba(0,0,0,0.13); }
+  .note-textarea { width: 100%; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.6; resize: none; outline: none; color: var(--charcoal); min-height: 72px; display: block; }
+  .note-del { position: absolute; top: 7px; right: 8px; background: none; border: none; cursor: pointer; font-size: 0.9rem; color: rgba(0,0,0,0.25); opacity: 0; transition: opacity 0.15s; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+  .note-card:hover .note-del { opacity: 1; }
+  .note-del:hover { background: rgba(0,0,0,0.08); color: rgba(0,0,0,0.5); }
+  .note-colors { display: flex; gap: 5px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.07); }
+  .note-color-dot { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s; flex-shrink: 0; }
+  .note-color-dot:hover, .note-color-dot.active { transform: scale(1.3); border-color: rgba(0,0,0,0.2); }
   .form-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .form-row .input-field { min-width: 120px; }
   textarea.input-field { resize: vertical; min-height: 60px; }
@@ -190,6 +203,7 @@
     <button onclick="showPanel('grocery', this)">🛒 Grocery</button>
     <button onclick="showPanel('calendar', this)">📅 Calendar</button>
     <button onclick="showPanel('recipes', this)">📖 Recipes</button>
+    <button onclick="showPanel('notes', this)">📝 Notes</button>
   </nav>
 
   <!-- TIMERS -->
@@ -305,6 +319,15 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="panel" id="panel-notes">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--charcoal)">Notes</div>
+      <button class="btn btn-primary" onclick="addNote()">+ New note</button>
+    </div>
+    <div class="notes-grid" id="notes-grid"></div>
   </div>
 </div>
 
@@ -858,6 +881,60 @@ function renderRecipes(){
 }
 function toggleRecipe(i){document.getElementById(`rc-${i}`)?.classList.toggle('open');}
 renderRecipes();
+
+// ========== NOTES ==========
+const NOTE_COLORS = ['#fef9c3','#fde8d3','#dceedd','#e9e4f5','#faf8f4','#fce4ec'];
+let notes = JSON.parse(localStorage.getItem('kitchenNotes') || '[]');
+
+function saveNotes() { localStorage.setItem('kitchenNotes', JSON.stringify(notes)); }
+
+function addNote() {
+  const color = NOTE_COLORS[notes.length % NOTE_COLORS.length];
+  notes.unshift({ id: Date.now(), text: '', color });
+  saveNotes();
+  renderNotes();
+  setTimeout(() => { const t = document.querySelector('.note-textarea'); if(t) t.focus(); }, 40);
+}
+
+function updateNoteText(id, text) {
+  const n = notes.find(n => n.id === id);
+  if (n) { n.text = text; saveNotes(); }
+}
+
+function setNoteColor(id, color) {
+  const n = notes.find(n => n.id === id);
+  if (!n) return;
+  n.color = color;
+  saveNotes();
+  renderNotes();
+}
+
+function deleteNote(id) {
+  if (notes.find(n => n.id === id)?.text && !confirm('Delete this note?')) return;
+  notes = notes.filter(n => n.id !== id);
+  saveNotes();
+  renderNotes();
+}
+
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+function renderNotes() {
+  const grid = document.getElementById('notes-grid');
+  if (!notes.length) {
+    grid.innerHTML = `<div style="color:var(--muted);font-size:0.88rem;padding:20px 0">No notes yet — hit + New note to start.</div>`;
+    return;
+  }
+  grid.innerHTML = notes.map(n => `
+    <div class="note-card" style="background:${n.color}">
+      <button class="note-del" onclick="deleteNote(${n.id})">✕</button>
+      <textarea class="note-textarea" placeholder="Write anything..." oninput="autoResize(this);updateNoteText(${n.id},this.value)" onblur="updateNoteText(${n.id},this.value)">${n.text}</textarea>
+      <div class="note-colors">
+        ${NOTE_COLORS.map(c => `<div class="note-color-dot ${c===n.color?'active':''}" style="background:${c}" onclick="setNoteColor(${n.id},'${c}')"></div>`).join('')}
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.note-textarea').forEach(autoResize);
+}
+renderNotes();
 </script>
 </body>
 </html>
