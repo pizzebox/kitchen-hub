@@ -208,6 +208,14 @@
   /* Oven reminder */
   .alarm-oven-msg { font-family: 'DM Mono', monospace; font-size: 0.88rem; color: rgba(255,230,120,0.95); margin-bottom: 12px; letter-spacing: 1px; }
 
+  /* Weather bar */
+  .weather-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .weather-card { flex: 1; min-width: 120px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .weather-city { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .weather-temp { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--charcoal); line-height: 1.1; }
+  .weather-desc { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+  .weather-icon { font-size: 1.4rem; margin-bottom: 2px; }
+
   /* Portrait tablet — biggest boost */
   @media (orientation: portrait) and (min-width: 600px) {
     html { font-size: 21px; }
@@ -266,6 +274,13 @@
       </div>
     </div>
   </header>
+
+  <!-- WEATHER -->
+  <div class="weather-bar" id="weather-bar">
+    <div class="weather-card" id="wx-harrison"><div class="weather-icon">🌤</div><div class="weather-city">Harrison</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
+    <div class="weather-card" id="wx-cincinnati"><div class="weather-icon">🌤</div><div class="weather-city">Cincinnati</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
+    <div class="weather-card" id="wx-kenwood"><div class="weather-icon">🌤</div><div class="weather-city">Kenwood</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
+  </div>
 
   <nav>
     <button class="active" onclick="showPanel('timers', this)">⏱ Timers</button>
@@ -398,6 +413,51 @@
 </div>
 
 <script>
+// ========== WEATHER ==========
+const WEATHER_LOCATIONS = [
+  { id: 'harrison',   label: 'Harrison',   lat: 39.2598, lon: -84.8271 },
+  { id: 'cincinnati', label: 'Cincinnati', lat: 39.1031, lon: -84.5120 },
+  { id: 'kenwood',    label: 'Kenwood',    lat: 39.1878, lon: -84.3716 },
+];
+
+function wxCode(code, isDay) {
+  const c = Number(code);
+  if (c === 0)              return { icon: isDay ? '☀️' : '🌙', desc: 'Clear' };
+  if (c <= 2)               return { icon: '⛅', desc: 'Partly cloudy' };
+  if (c === 3)              return { icon: '☁️', desc: 'Overcast' };
+  if (c <= 48)              return { icon: '🌫️', desc: 'Foggy' };
+  if (c <= 55)              return { icon: '🌦️', desc: 'Drizzle' };
+  if (c <= 65)              return { icon: '🌧️', desc: 'Rain' };
+  if (c <= 77)              return { icon: '❄️', desc: 'Snow' };
+  if (c <= 82)              return { icon: '🌧️', desc: 'Showers' };
+  if (c <= 86)              return { icon: '🌨️', desc: 'Snow showers' };
+  if (c === 95)             return { icon: '⛈️', desc: 'Thunderstorm' };
+  return { icon: '⛈️', desc: 'Severe storm' };
+}
+
+async function fetchWeather() {
+  await Promise.all(WEATHER_LOCATIONS.map(async loc => {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current_weather=true&temperature_unit=fahrenheit&timezone=America%2FNew_York`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const cw = data.current_weather;
+      const { icon, desc } = wxCode(cw.weathercode, cw.is_day);
+      const card = document.getElementById('wx-' + loc.id);
+      if (!card) return;
+      card.querySelector('.weather-icon').textContent = icon;
+      card.querySelector('.weather-temp').textContent = Math.round(cw.temperature) + '°F';
+      card.querySelector('.weather-desc').textContent = desc;
+    } catch(e) {
+      const card = document.getElementById('wx-' + loc.id);
+      if (card) card.querySelector('.weather-desc').textContent = 'Unavailable';
+    }
+  }));
+}
+
+fetchWeather();
+setInterval(fetchWeather, 30 * 60 * 1000); // refresh every 30 min
+
 // ========== CLOCK ==========
 function updateClock() {
   const now = new Date();
