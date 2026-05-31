@@ -545,7 +545,7 @@ function disconnectGCal() {
   renderCalendar();
 }
 
-async function syncGoogleCalendar() {
+async function fetchGCalEvents() {
   if (!gcalToken) { connectGCal(); return; }
 
   const btn = document.getElementById('gcal-btn');
@@ -553,41 +553,52 @@ async function syncGoogleCalendar() {
   btn.disabled = true;
   btn.textContent = 'Syncing...';
   status.className = 'gcal-status';
-  status.innerHTML = '<span class="sync-spinner">⟳</span> Fetching your calendar...';
+  status.innerHTML = '<span class="sync-spinner">⟳</span> Fetching your calendars...';
+
+  const authHeaders = { Authorization: `Bearer ${gcalToken}` };
+
+  const handle401 = () => {
+    gcalToken = null; gcalTokenExpiry = 0;
+    btn.disabled = false; btn.textContent = 'Connect';
+    status.className = 'gcal-status error';
+    status.textContent = '⚠ Session expired — click Connect to sign in again.';
+  };
 
   try {
+    // Step 1: get all calendars
+    const listRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: authHeaders });
+    if (listRes.status === 401) { handle401(); return; }
+    if (!listRes.ok) throw new Error(await listRes.text());
+    const listData = await listRes.json();
+    const calendars = (listData.items || []).filter(c => c.selected !== false);
+
+    // Step 2: fetch events from each calendar in parallel
     const now = new Date();
     const future = new Date(); future.setDate(future.getDate() + 60);
     const timeMin = encodeURIComponent(now.toISOString());
     const timeMax = encodeURIComponent(future.toISOString());
 
-    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&maxResults=100&singleEvents=true&orderBy=startTime`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${gcalToken}` } });
+    const results = await Promise.all(calendars.map(async cal => {
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?timeMin=${timeMin}&timeMax=${timeMax}&maxResults=100&singleEvents=true&orderBy=startTime`;
+      const res = await fetch(url, { headers: authHeaders });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const calColor = cal.backgroundColor || '#7a9e7e';
+      return (data.items || []).map(item => {
+        const start = item.start.dateTime || item.start.date;
+        const date = start.substring(0, 10);
+        const time = item.start.dateTime ? new Date(item.start.dateTime).toTimeString().substring(0, 5) : '';
+        return { name: item.summary || 'Untitled', date, time, color: calColor, source: 'google' };
+      });
+    }));
 
-    if (res.status === 401) {
-      gcalToken = null; gcalTokenExpiry = 0;
-      btn.disabled = false; btn.textContent = 'Connect';
-      status.className = 'gcal-status error';
-      status.textContent = '⚠ Session expired — click Connect to sign in again.';
-      return;
-    }
-    if (!res.ok) throw new Error(await res.text());
-
-    const data = await res.json();
-    const colors = ['#7a9e7e', '#c4714a', '#d4a843', '#6b9ec4', '#9b7ec4'];
-    const gcalEvents = (data.items || []).map((item, i) => {
-      const start = item.start.dateTime || item.start.date;
-      const date = start.substring(0, 10);
-      const time = item.start.dateTime ? new Date(item.start.dateTime).toTimeString().substring(0, 5) : '';
-      return { name: item.summary || 'Untitled', date, time, color: colors[i % colors.length], source: 'google' };
-    });
-
+    const gcalEvents = results.flat();
     calEvents = calEvents.filter(e => e.source !== 'google');
     calEvents = calEvents.concat(gcalEvents);
     saveEvents();
 
     status.className = 'gcal-status synced';
-    status.textContent = `✓ Synced ${gcalEvents.length} events`;
+    status.textContent = `✓ Synced ${gcalEvents.length} events from ${calendars.length} calendar${calendars.length !== 1 ? 's' : ''}`;
     btn.textContent = 'Refresh'; btn.disabled = false;
     renderCalendar();
 
@@ -597,6 +608,10 @@ async function syncGoogleCalendar() {
     status.textContent = '⚠ Sync failed — check the console for details.';
     btn.textContent = 'Retry'; btn.disabled = false;
   }
+}
+
+async function syncGoogleCalendar() {
+  return fetchGCalEvents();
 }
 
 window.addEventListener('load', () => {
