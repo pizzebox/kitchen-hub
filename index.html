@@ -290,6 +290,7 @@
     <div class="note-fs-header" id="note-fs-header">
       <div style="display:flex;gap:6px;align-items:center" id="note-fs-colors"></div>
       <div style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm" id="note-mic-btn" onclick="kitchenMic(this, t => { const ta = document.getElementById('note-fs-text'); ta.value += (ta.value ? ' ' : '') + t; })">🎤</button>
       <button class="btn btn-ghost btn-sm" id="fs-eraser-btn" onclick="toggleFsEraser()">◻ Eraser</button>
       <button class="btn btn-ghost btn-sm" onclick="clearFsDrawing()" style="margin-left:4px">Clear</button>
       <button class="btn btn-ghost btn-sm" onclick="closeFullscreen()" style="margin-left:6px">✕ Close</button>
@@ -368,6 +369,7 @@
           <option value="pantry">Pantry</option>
           <option value="other">Other</option>
         </select>
+        <button class="btn btn-ghost" id="grocery-mic-btn" onclick="kitchenMic(this, t => { document.getElementById('grocery-input').value = t; addGrocery(); })" title="Add by voice">🎤</button>
         <button class="btn btn-primary" onclick="addGrocery()">Add</button>
       </div>
       <ul class="grocery-list" id="grocery-list"></ul>
@@ -464,8 +466,9 @@
 
     <div class="card">
       <div class="card-title"><div class="dot" style="background:var(--brown)"></div> Recipes</div>
-      <div class="recipes-search">
+      <div class="recipes-search" style="display:flex;gap:8px">
         <input class="input-field" id="recipe-search" placeholder="Search recipes..." oninput="renderRecipes()">
+        <button class="btn btn-ghost" id="recipe-mic-btn" onclick="kitchenMic(this, t => { document.getElementById('recipe-search').value = t; renderRecipes(); })" title="Search by voice">🎤</button>
       </div>
       <div id="recipes-list"></div>
       <button class="btn btn-ghost" onclick="toggleAddRecipe()" style="width:100%;margin-top:4px">+ Add Recipe Manually</button>
@@ -1612,6 +1615,39 @@ function renderNotes(){
   // no textarea on mini notes — editing is fullscreen only
 }
 
+// ========== SPEECH (LOCAL VOSK SERVER) ==========
+let _kitchenMicRec = null;
+
+async function kitchenMic(btnEl, onResult) {
+  if (_kitchenMicRec) { _kitchenMicRec.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks = [];
+    _kitchenMicRec = new MediaRecorder(stream);
+    if (btnEl) { btnEl.textContent = '🔴'; btnEl.style.color = 'var(--terracotta)'; }
+    _kitchenMicRec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    _kitchenMicRec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (btnEl) { btnEl.textContent = '🎤'; btnEl.style.color = ''; }
+      _kitchenMicRec = null;
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      try {
+        const res = await fetch('http://localhost:5050/transcribe', { method: 'POST', body: blob, headers: { 'Content-Type': 'audio/webm' } });
+        const data = await res.json();
+        if (data.text) onResult(data.text);
+        else alert('Didn\'t catch that — try again');
+      } catch(e) {
+        alert('Speech server not running — check setup');
+      }
+    };
+    _kitchenMicRec.start();
+    setTimeout(() => { if (_kitchenMicRec) _kitchenMicRec.stop(); }, 8000);
+  } catch(e) {
+    if (btnEl) { btnEl.textContent = '🎤'; btnEl.style.color = ''; }
+    alert('Microphone access denied');
+  }
+}
+
 // ========== BROWSE ==========
 function browseGo() {
   let url = (document.getElementById('browse-url').value || '').trim();
@@ -1620,23 +1656,10 @@ function browseGo() {
   window.location.href = url;
 }
 
-let _browseRec = null;
 function browseVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { alert('Speech recognition not supported in this browser'); return; }
-  const btn = document.getElementById('browse-mic-btn');
-  if (_browseRec) { _browseRec.stop(); return; }
-  _browseRec = new SR();
-  _browseRec.lang = 'en-US';
-  _browseRec.interimResults = false;
-  btn.textContent = '🔴';
-  _browseRec.onresult = e => {
-    document.getElementById('browse-url').value = e.results[0][0].transcript;
-    btn.textContent = '🎤';
-    _browseRec = null;
-  };
-  _browseRec.onerror = _browseRec.onend = () => { btn.textContent = '🎤'; _browseRec = null; };
-  _browseRec.start();
+  kitchenMic(document.getElementById('browse-mic-btn'), t => {
+    document.getElementById('browse-url').value = t;
+  });
 }
 
 // ========== SLEEP MODE ==========
