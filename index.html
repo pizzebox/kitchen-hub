@@ -1087,7 +1087,7 @@ function renderNotes(){
   notes.forEach(n=>{
     if(!n.drawing)return;
     const canvas=document.getElementById('snc-'+n.id);if(!canvas)return;
-    const img=new Image();img.onload=()=>canvas.getContext('2d').drawImage(img,0,0);img.src=n.drawing;
+    const img=new Image();img.onload=()=>canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);img.src=n.drawing;
   });
   document.querySelectorAll('.sn-text').forEach(autoResize);
 }
