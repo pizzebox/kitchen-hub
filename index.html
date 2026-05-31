@@ -1007,7 +1007,9 @@ function snPointerMove(e,id){
 function snPointerUp(e,id){
   if(!snDrawing)return; snDrawing=false;
   const canvas=document.getElementById('snc-'+id); if(!canvas)return;
-  const n=notes.find(n=>n.id===id); if(n){n.drawing=canvas.toDataURL();saveNotes();}
+  const store=document.createElement('canvas'); store.width=400; store.height=260;
+  store.getContext('2d').drawImage(canvas,0,0,400,260);
+  const n=notes.find(n=>n.id===id); if(n){n.drawing=store.toDataURL();saveNotes();}
 }
 function clearSnDrawing(id){
   const canvas=document.getElementById('snc-'+id);
@@ -1024,13 +1026,19 @@ function openFullscreen(id){
   document.getElementById('note-fs-text').value=n.text||'';
   document.getElementById('note-fs-colors').innerHTML=NOTE_COLORS.map(c=>`<div class="nc-dot ${c===n.color?'active':''}" data-color="${c}" style="background:${c}" onclick="setFsColor('${c}')"></div>`).join('');
   overlay.style.display='flex';
-  requestAnimationFrame(()=>{
+  // Double RAF guarantees flex layout is computed before reading dimensions
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const canvas=document.getElementById('note-fs-canvas');
-    canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight;
+    canvas.width=canvas.offsetWidth||window.innerWidth-40;
+    canvas.height=canvas.offsetHeight||window.innerHeight-220;
     fsCtx=canvas.getContext('2d');
     fsCtx.strokeStyle='#2a2520';fsCtx.lineWidth=3;fsCtx.lineCap='round';fsCtx.lineJoin='round';
-    if(n.drawing){const img=new Image();img.onload=()=>fsCtx.drawImage(img,0,0,canvas.width,canvas.height);img.src=n.drawing;}
-  });
+    if(n.drawing){
+      const img=new Image();
+      img.onload=()=>{fsCtx.clearRect(0,0,canvas.width,canvas.height);fsCtx.drawImage(img,0,0,canvas.width,canvas.height);};
+      img.src=n.drawing;
+    }
+  }));
 }
 function setFsColor(color){
   if(activeFsId===null)return;
@@ -1042,7 +1050,16 @@ function setFsColor(color){
 function closeFullscreen(){
   if(activeFsId!==null){
     const n=notes.find(n=>n.id===activeFsId);
-    if(n){n.text=document.getElementById('note-fs-text').value;const c=document.getElementById('note-fs-canvas');n.drawing=c.toDataURL();saveNotes();}
+    if(n){
+      n.text=document.getElementById('note-fs-text').value;
+      const c=document.getElementById('note-fs-canvas');
+      if(c.width>0 && c.height>0){
+        const store=document.createElement('canvas'); store.width=400; store.height=260;
+        store.getContext('2d').drawImage(c,0,0,400,260);
+        n.drawing=store.toDataURL();
+      }
+      saveNotes();
+    }
   }
   document.getElementById('note-fs-overlay').style.display='none';
   activeFsId=null; renderNotes();
@@ -1087,7 +1104,13 @@ function renderNotes(){
   notes.forEach(n=>{
     if(!n.drawing)return;
     const canvas=document.getElementById('snc-'+n.id);if(!canvas)return;
-    const img=new Image();img.onload=()=>canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);img.src=n.drawing;
+    const img=new Image();
+    img.onload=()=>{
+      const ctx=canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    };
+    img.src=n.drawing;
   });
   document.querySelectorAll('.sn-text').forEach(autoResize);
 }
