@@ -18,6 +18,8 @@
 <title>Kitchen Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --cream: #f5f0e8; --warm-white: #faf8f4; --charcoal: #2a2520;
@@ -226,6 +228,19 @@
   .rv-header { padding: 12px 16px; display: flex; align-items: center; gap: 12px; background: var(--card-bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .rv-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; flex: 1; }
   .rv-content { flex: 1; overflow: auto; background: white; }
+  /* Weather detail overlay */
+  .wx-day { background: var(--cream); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .wx-day-name { font-size: 0.68rem; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+  .wx-day-icon { font-size: 1.6rem; margin: 4px 0; }
+  .wx-day-high { font-size: 0.95rem; font-weight: 700; color: var(--charcoal); }
+  .wx-day-low { font-size: 0.78rem; color: var(--muted); }
+  .wx-day-rain { font-size: 0.72rem; color: #4a90d9; margin-top: 3px; }
+  .wx-day-amt { font-size: 0.66rem; color: var(--muted); }
+  .wx-7day { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 18px; }
+  .wx-radar-wrap { border-radius: 12px; overflow: hidden; height: 280px; position: relative; }
+  .wx-radar-controls { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .wx-radar-time { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); flex: 1; }
+  #wx-radar-map { width: 100%; height: 100%; }
   /* Browse panel */
   .browse-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
   .browse-tile { border: none; border-radius: 16px; padding: 28px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 12px; color: white; transition: all 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.18); font-family: 'DM Sans', sans-serif; }
@@ -255,6 +270,13 @@
 </head>
 <body>
 <div class="alarm-overlay" id="alarm-overlay"></div>
+<div class="rv-overlay" id="wx-overlay">
+  <div class="rv-header">
+    <div class="rv-title" id="wx-overlay-title"></div>
+    <button class="btn btn-ghost btn-sm" onclick="closeWeatherDetail()">✕ Close</button>
+  </div>
+  <div class="rv-content" id="wx-detail-content" style="padding:16px;overflow-y:auto"></div>
+</div>
 <div class="rv-overlay" id="rv-overlay">
   <div class="rv-header">
     <div class="rv-title" id="rv-title"></div>
@@ -306,9 +328,9 @@
     <button onclick="toggleWeather()" id="wx-toggle" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:5px 12px">🌤 Weather ▾</button>
   </div>
   <div class="weather-bar" id="weather-bar">
-    <div class="weather-card" id="wx-harrison"><div class="weather-icon">🌤</div><div class="weather-city">Harrison</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
-    <div class="weather-card" id="wx-cincinnati"><div class="weather-icon">🌤</div><div class="weather-city">Cincinnati</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
-    <div class="weather-card" id="wx-kenwood"><div class="weather-icon">🌤</div><div class="weather-city">Kenwood</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
+    <div class="weather-card" id="wx-harrison" onclick="openWeatherDetail('harrison')" style="cursor:pointer"><div class="weather-icon">🌤</div><div class="weather-city">Harrison</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
+    <div class="weather-card" id="wx-cincinnati" onclick="openWeatherDetail('cincinnati')" style="cursor:pointer"><div class="weather-icon">🌤</div><div class="weather-city">Cincinnati</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
+    <div class="weather-card" id="wx-kenwood" onclick="openWeatherDetail('kenwood')" style="cursor:pointer"><div class="weather-icon">🌤</div><div class="weather-city">Kenwood</div><div class="weather-temp">--°</div><div class="weather-desc">Loading...</div></div>
   </div>
 
   <nav>
@@ -571,6 +593,124 @@ function toggleWeather() {
 if (localStorage.getItem('wxOpen') === '0') {
   document.getElementById('weather-bar').style.display = 'none';
   document.getElementById('wx-toggle').textContent = '🌤 Weather ▸';
+}
+
+// ========== WEATHER DETAIL ==========
+let _wxMap = null, _radarLayers = [], _radarIdx = 0, _radarTimer = null;
+
+async function openWeatherDetail(locId) {
+  const loc = WEATHER_LOCATIONS.find(l => l.id === locId);
+  if (!loc) return;
+  document.getElementById('wx-overlay-title').textContent = loc.label + ' — 7-Day Forecast';
+  document.getElementById('wx-detail-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Loading forecast...</div>';
+  document.getElementById('wx-overlay').classList.add('open');
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max&temperature_unit=fahrenheit&timezone=America%2FNew_York&forecast_days=7`;
+    const data = await (await fetch(url)).json();
+    renderWeatherDetail(loc, data.daily);
+  } catch(e) {
+    document.getElementById('wx-detail-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--terracotta)">Could not load forecast</div>';
+  }
+}
+
+function renderWeatherDetail(loc, daily) {
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const grid = daily.time.map((t, i) => {
+    const d = new Date(t + 'T12:00:00');
+    const { icon } = wxCode(daily.weathercode[i], true);
+    const hi = Math.round(daily.temperature_2m_max[i]);
+    const lo = Math.round(daily.temperature_2m_min[i]);
+    const prob = daily.precipitation_probability_max[i] || 0;
+    const amt = (daily.precipitation_sum[i] || 0).toFixed(2);
+    return `<div class="wx-day">
+      <div class="wx-day-name">${i === 0 ? 'Today' : dayNames[d.getDay()]}</div>
+      <div class="wx-day-icon">${icon}</div>
+      <div class="wx-day-high">${hi}°</div>
+      <div class="wx-day-low">${lo}°</div>
+      <div class="wx-day-rain">💧 ${prob}%</div>
+      ${parseFloat(amt) > 0 ? `<div class="wx-day-amt">${amt}"</div>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('wx-detail-content').innerHTML = `
+    <div class="wx-7day">${grid}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Rain Radar</div>
+    <div class="wx-radar-wrap"><div id="wx-radar-map"></div></div>
+    <div class="wx-radar-controls">
+      <button class="btn btn-ghost btn-sm" id="wx-radar-play" onclick="toggleRadar()">▶ Play</button>
+      <button class="btn btn-ghost btn-sm" onclick="stepRadar(-1)">‹</button>
+      <button class="btn btn-ghost btn-sm" onclick="stepRadar(1)">›</button>
+      <span class="wx-radar-time" id="wx-radar-time">Loading radar...</span>
+    </div>`;
+
+  setTimeout(() => initRadarMap(loc), 150);
+}
+
+async function initRadarMap(loc) {
+  if (_wxMap) { _wxMap.remove(); _wxMap = null; }
+  if (_radarTimer) { clearInterval(_radarTimer); _radarTimer = null; }
+  _radarLayers = []; _radarIdx = 0;
+  if (!window.L) return;
+
+  _wxMap = L.map('wx-radar-map', { zoomControl: true, attributionControl: false })
+    .setView([loc.lat, loc.lon], 7);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 10 }).addTo(_wxMap);
+  L.circleMarker([loc.lat, loc.lon], { radius: 7, fillColor: '#c4714a', color: 'white', fillOpacity: 1, weight: 2 }).addTo(_wxMap);
+
+  try {
+    const rv = await (await fetch('https://api.rainviewer.com/public/weather-maps.json')).json();
+    const frames = [...(rv.radar.past || []), ...(rv.radar.nowcast || [])];
+    frames.forEach((f, i) => {
+      const layer = L.tileLayer(`https://tilecache.rainviewer.com${f.path}/512/{z}/{x}/{y}/2/1_1.png`, {
+        tileSize: 512, opacity: i === frames.length - 1 ? 0.65 : 0, maxZoom: 10
+      });
+      layer.addTo(_wxMap);
+      _radarLayers.push({ layer, time: f.time });
+    });
+    _radarIdx = _radarLayers.length - 1;
+    updateRadarTime();
+  } catch(e) {
+    document.getElementById('wx-radar-time').textContent = 'Radar unavailable';
+  }
+}
+
+function updateRadarTime() {
+  const el = document.getElementById('wx-radar-time');
+  if (!el || !_radarLayers.length) return;
+  const t = new Date(_radarLayers[_radarIdx].time * 1000);
+  const label = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isNow = _radarIdx === _radarLayers.findIndex(f => f.time >= Date.now()/1000) - 1;
+  el.textContent = label + (_radarIdx >= _radarLayers.length - 1 ? ' (latest)' : '');
+}
+
+function showRadarFrame(idx) {
+  _radarLayers.forEach((f, i) => f.layer.setOpacity(i === idx ? 0.65 : 0));
+  _radarIdx = idx;
+  updateRadarTime();
+}
+
+function stepRadar(dir) {
+  if (!_radarLayers.length) return;
+  showRadarFrame((_radarIdx + dir + _radarLayers.length) % _radarLayers.length);
+}
+
+function toggleRadar() {
+  const btn = document.getElementById('wx-radar-play');
+  if (_radarTimer) {
+    clearInterval(_radarTimer); _radarTimer = null;
+    if (btn) btn.textContent = '▶ Play';
+  } else {
+    if (btn) btn.textContent = '⏸ Pause';
+    _radarTimer = setInterval(() => stepRadar(1), 500);
+  }
+}
+
+function closeWeatherDetail() {
+  document.getElementById('wx-overlay').classList.remove('open');
+  if (_radarTimer) { clearInterval(_radarTimer); _radarTimer = null; }
+  if (_wxMap) { _wxMap.remove(); _wxMap = null; }
+  _radarLayers = [];
 }
 
 // ========== CLOCK ==========
