@@ -216,6 +216,15 @@
   .weather-desc { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
   .weather-icon { font-size: 1.4rem; margin-bottom: 2px; }
 
+  /* Browse panel */
+  .browse-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+  .browse-tile { border: none; border-radius: 16px; padding: 28px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 12px; color: white; transition: all 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.18); font-family: 'DM Sans', sans-serif; }
+  .browse-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.22); }
+  .browse-tile:active { transform: scale(0.96); }
+  .browse-tile-icon { font-size: 2.8rem; line-height: 1; }
+  .browse-tile-name { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.3px; }
+  .browse-url-bar { display: flex; gap: 8px; margin-bottom: 18px; }
+
   /* Portrait tablet — biggest boost */
   @media (orientation: portrait) and (min-width: 600px) {
     html { font-size: 21px; }
@@ -270,7 +279,7 @@
       <div class="header-actions">
         <span class="battery-status" id="battery-status"></span>
         <button class="btn btn-ghost btn-sm" onclick="enterSleepMode()" title="Dim screen">💤 Sleep</button>
-        <a href="https://open.spotify.com" target="_blank" class="btn btn-ghost btn-sm spotify-btn">🎵 Spotify</a>
+        <button class="btn btn-ghost btn-sm spotify-btn" onclick="window.location.href='https://open.spotify.com'">🎵 Spotify</button>
       </div>
     </div>
   </header>
@@ -291,6 +300,7 @@
     <button onclick="showPanel('calendar', this)">📅 Calendar</button>
     <button onclick="showPanel('recipes', this)">📖 Recipes</button>
     <button onclick="showPanel('notes', this)">📝 Notes</button>
+    <button onclick="showPanel('browse', this)">🌐 Browse</button>
   </nav>
 
   <!-- TIMERS -->
@@ -412,6 +422,36 @@
   <div class="panel" id="panel-notes">
     <div class="notes-board" id="notes-board"></div>
     <button class="notes-fab" onclick="addNote()">+</button>
+  </div>
+
+  <!-- BROWSE -->
+  <div class="panel" id="panel-browse">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--brown)"></div> Go To</div>
+      <div class="browse-url-bar">
+        <input class="input-field" id="browse-url" placeholder="Type a URL or tap 🎤 to speak..." onkeydown="if(event.key==='Enter')browseGo()">
+        <button class="btn btn-ghost" id="browse-mic-btn" onclick="browseVoice()" title="Speak a URL" style="font-size:1.2rem;padding:9px 14px">🎤</button>
+        <button class="btn btn-primary" onclick="browseGo()">Go</button>
+      </div>
+      <div class="browse-tiles">
+        <button class="browse-tile" onclick="window.location.href='https://open.spotify.com'" style="background:#1DB954">
+          <div class="browse-tile-icon">🎵</div>
+          <div class="browse-tile-name">Spotify</div>
+        </button>
+        <button class="browse-tile" onclick="window.location.href='https://www.youtube.com'" style="background:#FF0000">
+          <div class="browse-tile-icon">▶️</div>
+          <div class="browse-tile-name">YouTube</div>
+        </button>
+        <button class="browse-tile" onclick="window.location.href='https://www.google.com'" style="background:#4285F4">
+          <div class="browse-tile-icon">🔍</div>
+          <div class="browse-tile-name">Google</div>
+        </button>
+        <button class="browse-tile" onclick="window.location.href='https://alexa.amazon.com'" style="background:#00A8CC">
+          <div class="browse-tile-icon">💬</div>
+          <div class="browse-tile-name">Alexa</div>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1291,6 +1331,33 @@ function renderNotes(){
     });
   });
   // no textarea on mini notes — editing is fullscreen only
+}
+
+// ========== BROWSE ==========
+function browseGo() {
+  let url = (document.getElementById('browse-url').value || '').trim();
+  if (!url) return;
+  if (!url.match(/^https?:\/\//)) url = 'https://' + url;
+  window.location.href = url;
+}
+
+let _browseRec = null;
+function browseVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Speech recognition not supported in this browser'); return; }
+  const btn = document.getElementById('browse-mic-btn');
+  if (_browseRec) { _browseRec.stop(); return; }
+  _browseRec = new SR();
+  _browseRec.lang = 'en-US';
+  _browseRec.interimResults = false;
+  btn.textContent = '🔴';
+  _browseRec.onresult = e => {
+    document.getElementById('browse-url').value = e.results[0][0].transcript;
+    btn.textContent = '🎤';
+    _browseRec = null;
+  };
+  _browseRec.onerror = _browseRec.onend = () => { btn.textContent = '🎤'; _browseRec = null; };
+  _browseRec.start();
 }
 
 // ========== SLEEP MODE ==========
