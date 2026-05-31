@@ -78,13 +78,16 @@
   .cal-nav:hover { background: var(--cream); }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
   .cal-day-name { text-align: center; font-size: 0.65rem; font-weight: 500; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; padding: 6px 0; }
-  .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; position: relative; color: var(--charcoal); }
+  .cal-day { min-height: 82px; display: flex; flex-direction: column; align-items: stretch; border-radius: 8px; cursor: pointer; transition: background 0.15s; position: relative; color: var(--charcoal); padding: 4px 3px; overflow: hidden; }
   .cal-day:hover { background: var(--cream); }
   .cal-day.other-month { color: var(--border); }
+  .cal-day.other-month .cal-event-chip { display: none; }
   .cal-day.today { background: var(--terracotta); color: white; font-weight: 700; }
   .cal-day.selected { background: var(--charcoal); color: var(--cream); }
-  .cal-day.has-event::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
-  .cal-day.today.has-event::after { background: white; }
+  .cal-day-num { font-size: 0.8rem; font-weight: 500; padding: 1px 3px; flex-shrink: 0; line-height: 1.6; }
+  .cal-event-chip { font-size: 0.58rem; font-weight: 500; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; color: white; line-height: 1.5; flex-shrink: 0; }
+  .cal-day.today .cal-event-chip, .cal-day.selected .cal-event-chip { background: rgba(255,255,255,0.25) !important; }
+  .cal-more { font-size: 0.55rem; padding: 0 3px; opacity: 0.6; }
   .events-section { margin-top: 14px; }
   .event-date-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
   .event-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--cream); margin-bottom: 6px; }
@@ -588,7 +591,18 @@ async function fetchGCalEvents() {
         const start = item.start.dateTime || item.start.date;
         const date = start.substring(0, 10);
         const time = item.start.dateTime ? new Date(item.start.dateTime).toTimeString().substring(0, 5) : '';
-        return { name: item.summary || 'Untitled', date, time, color: calColor, source: 'google' };
+        let endDate = date;
+        if (item.end) {
+          if (item.end.dateTime) {
+            endDate = item.end.dateTime.substring(0, 10);
+          } else if (item.end.date) {
+            // all-day end is exclusive — step back one day
+            const [y, m, d2] = item.end.date.split('-').map(Number);
+            const dt = new Date(y, m - 1, d2 - 1);
+            endDate = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+          }
+        }
+        return { name: item.summary || 'Untitled', date, endDate, time, color: calColor, source: 'google' };
       });
     }));
 
@@ -621,6 +635,13 @@ window.addEventListener('load', () => {
 
 function changeMonth(dir){calDate.setMonth(calDate.getMonth()+dir);renderCalendar();}
 
+function getDayEvents(dateStr) {
+  return calEvents.filter(ev => {
+    const end = ev.endDate || ev.date;
+    return dateStr >= ev.date && dateStr <= end;
+  }).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+}
+
 function renderCalendar(){
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('cal-month-label').textContent=`${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
@@ -631,20 +652,25 @@ function renderCalendar(){
   const daysInPrev=new Date(calDate.getFullYear(),calDate.getMonth(),0).getDate();
   const dayNames=['Su','Mo','Tu','We','Th','Fr','Sa'];
   let html=dayNames.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
-  for(let i=0;i<firstDay;i++){const d=daysInPrev-firstDay+1+i;html+=`<div class="cal-day other-month">${d}</div>`;}
+  for(let i=0;i<firstDay;i++){const d=daysInPrev-firstDay+1+i;html+=`<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;}
   for(let d=1;d<=daysInMonth;d++){
     const isToday=today.getDate()===d&&today.getMonth()===calDate.getMonth()&&today.getFullYear()===calDate.getFullYear();
     const isSelected=selectedDate.getDate()===d&&selectedDate.getMonth()===calDate.getMonth()&&selectedDate.getFullYear()===calDate.getFullYear();
     const dateStr=`${calDate.getFullYear()}-${String(calDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const hasEvent=calEvents.some(e=>e.date===dateStr);
+    const dayEvs=getDayEvents(dateStr);
     let cls='cal-day';
     if(isToday)cls+=' today';else if(isSelected)cls+=' selected';
-    if(hasEvent)cls+=' has-event';
-    html+=`<div class="${cls}" onclick="selectDay(${d})">${d}</div>`;
+    const isSpecial=isToday||isSelected;
+    const chips=dayEvs.slice(0,3).map(ev=>{
+      const bg=isSpecial?'rgba(255,255,255,0.25)':ev.color||'#c4714a';
+      return `<div class="cal-event-chip" style="background:${bg}">${ev.name}</div>`;
+    }).join('');
+    const more=dayEvs.length>3?`<div class="cal-more">+${dayEvs.length-3} more</div>`:'';
+    html+=`<div class="${cls}" onclick="selectDay(${d})"><div class="cal-day-num">${d}</div>${chips}${more}</div>`;
   }
   const totalCells=Math.ceil((firstDay+daysInMonth)/7)*7;
   let next=1;
-  for(let i=firstDay+daysInMonth;i<totalCells;i++){html+=`<div class="cal-day other-month">${next++}</div>`;}
+  for(let i=firstDay+daysInMonth;i<totalCells;i++){html+=`<div class="cal-day other-month"><div class="cal-day-num">${next++}</div></div>`;}
   grid.innerHTML=html;
   renderEvents();
 }
@@ -653,22 +679,22 @@ function selectDay(d){selectedDate=new Date(calDate.getFullYear(),calDate.getMon
 
 function renderEvents(){
   const dateStr=`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
-  const dayEvents=calEvents.filter(e=>e.date===dateStr);
+  const dayEvents=getDayEvents(dateStr);
   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const label=`${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}`;
   let html=`<div class="event-date-label">${label}</div>`;
   if(!dayEvents.length)html+=`<div style="color:var(--muted);font-size:0.82rem;padding:6px 0">No events</div>`;
-  // Sort by time
-  const sorted = [...dayEvents].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  sorted.forEach((ev,idx)=>{
-    const isGoogle = ev.source === 'google';
+  dayEvents.forEach(ev=>{
+    const isGoogle=ev.source==='google';
+    const isMultiDay=ev.endDate&&ev.endDate!==ev.date;
     html+=`
       <div class="event-item">
         <div class="event-color" style="background:${ev.color||'#c4714a'}"></div>
         <div class="event-info" style="flex:1">
           <div class="event-name">${ev.name}</div>
           ${ev.time?`<div class="event-time">${ev.time}</div>`:''}
+          ${isMultiDay?`<div class="event-time">${ev.date} → ${ev.endDate}</div>`:''}
           ${isGoogle?`<div class="event-source">Google Calendar</div>`:''}
         </div>
         ${!isGoogle?`<button class="grocery-del" onclick="deleteLocalEvent('${ev.date}','${ev.name}')">✕</button>`:''}
