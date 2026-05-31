@@ -13,6 +13,7 @@
     --gold: #d4a843; --muted: #9c8f85; --card-bg: #ffffff; --border: #e8e0d4;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 18px; }
   body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--charcoal); min-height: 100vh; overflow-x: hidden; }
   body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; opacity: 0.4; }
   .app { position: relative; z-index: 1; padding: 20px; max-width: 1024px; margin: 0 auto; }
@@ -23,7 +24,7 @@
   .clock-block .time { font-family: 'DM Mono', monospace; font-size: 2.2rem; font-weight: 500; color: var(--charcoal); letter-spacing: -1px; }
   .clock-block .date { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.5px; margin-top: 2px; }
   nav { display: flex; gap: 6px; margin-bottom: 20px; background: var(--card-bg); border-radius: 12px; padding: 6px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-  nav button { flex: 1; padding: 10px 8px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--muted); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  nav button { flex: 1; padding: 12px 8px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500; color: var(--muted); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
   nav button.active { background: var(--charcoal); color: var(--cream); box-shadow: 0 2px 8px rgba(42,37,32,0.2); }
   nav button:not(.active):hover { background: var(--cream); color: var(--charcoal); }
   .panel { display: none; animation: fadeIn 0.25s ease; }
@@ -46,31 +47,31 @@
   .alarm-banner-label { font-family: 'DM Mono', monospace; font-size: 1rem; color: rgba(255,255,255,0.8); margin-bottom: 24px; letter-spacing: 2px; text-transform: uppercase; }
   .timer-label-input { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--muted); border: none; background: transparent; text-align: center; width: 100%; margin-bottom: 8px; outline: none; }
   .timer-controls { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
-  .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 500; transition: all 0.15s; }
+  .btn { padding: 9px 16px; border: none; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; transition: all 0.15s; }
   .btn-primary { background: var(--terracotta); color: white; }
   .btn-primary:hover { background: #b5623e; }
   .btn-ghost { background: var(--border); color: var(--charcoal); }
   .btn-ghost:hover { background: #d9cfc3; }
   .btn-sage { background: var(--sage); color: white; }
   .btn-sage:hover { background: #6a8e6e; }
-  .btn-sm { padding: 4px 10px; font-size: 0.7rem; }
+  .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
   .preset-btns { display: flex; gap: 4px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
-  .input-field { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; background: var(--cream); color: var(--charcoal); outline: none; transition: border-color 0.2s; }
+  .input-field { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; background: var(--cream); color: var(--charcoal); outline: none; transition: border-color 0.2s; }
   .input-field:focus { border-color: var(--terracotta); }
   .grocery-add { display: flex; gap: 8px; margin-bottom: 14px; }
   .grocery-list { list-style: none; }
   .grocery-item { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); animation: slideIn 0.2s ease; }
   @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
   .grocery-item:last-child { border-bottom: none; }
-  .grocery-check { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; background: white; }
+  .grocery-check { width: 24px; height: 24px; border-radius: 5px; border: 2px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; background: white; }
   .grocery-check.checked { background: var(--sage); border-color: var(--sage); }
-  .grocery-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  .grocery-check.checked::after { content: '✓'; color: white; font-size: 14px; font-weight: 700; }
   .grocery-text { flex: 1; font-size: 0.9rem; }
   .grocery-text.checked { text-decoration: line-through; color: var(--muted); }
   .grocery-del { color: var(--muted); cursor: pointer; font-size: 1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; transition: all 0.15s; }
   .grocery-del:hover { background: #fee; color: #c44; }
   .grocery-sections { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  .section-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--muted); transition: all 0.15s; }
+  .section-pill { padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--muted); transition: all 0.15s; }
   .section-pill.active { background: var(--charcoal); color: var(--cream); border-color: var(--charcoal); }
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .cal-month { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; }
@@ -92,11 +93,11 @@
   .event-date-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
   .event-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--cream); margin-bottom: 6px; }
   .event-color { width: 4px; height: 36px; border-radius: 2px; flex-shrink: 0; }
-  .event-info .event-name { font-size: 0.85rem; font-weight: 500; }
-  .event-info .event-time { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-  .event-info .event-source { font-size: 0.65rem; color: var(--sage); margin-top: 1px; letter-spacing: 0.5px; }
+  .event-info .event-name { font-size: 0.95rem; font-weight: 500; }
+  .event-info .event-time { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .event-info .event-source { font-size: 0.72rem; color: var(--sage); margin-top: 1px; letter-spacing: 0.5px; }
   .event-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .input-mini { padding: 7px 10px; font-size: 0.8rem; }
+  .input-mini { padding: 9px 12px; font-size: 0.88rem; }
 
   /* Google Calendar sync bar */
   .gcal-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 14px; flex-wrap: wrap; }
@@ -120,11 +121,11 @@
   .recipe-card.open .recipe-body { display: block; }
   .recipe-body h4 { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
   .recipe-body ul { list-style: none; }
-  .recipe-body ul li { padding: 4px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+  .recipe-body ul li { padding: 6px 0; font-size: 0.92rem; border-bottom: 1px solid var(--border); }
   .recipe-body ul li:last-child { border-bottom: none; }
   .recipe-body ul li::before { content: '— '; color: var(--muted); }
   .recipe-body ol { padding-left: 16px; }
-  .recipe-body ol li { padding: 4px 0; font-size: 0.85rem; }
+  .recipe-body ol li { padding: 6px 0; font-size: 0.92rem; }
   .recipe-add-btn { margin-top: 12px; }
   .add-recipe-form { padding: 16px; background: var(--cream); border-radius: 10px; border: 1px dashed var(--border); margin-bottom: 12px; }
   .add-recipe-form h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 12px; }
