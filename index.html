@@ -266,6 +266,36 @@
     header h1 { font-size: 1.4rem; }
     nav button { font-size: 0.78rem; padding: 10px 4px; }
   }
+  /* Cooking Mode */
+  .cook-overlay { display:none; position:fixed; inset:0; z-index:9200; background:var(--cream); flex-direction:column; overflow:hidden; }
+  .cook-overlay.open { display:flex; }
+  .cook-header { padding:12px 16px; display:flex; align-items:center; gap:12px; background:var(--card-bg); border-bottom:1px solid var(--border); flex-shrink:0; }
+  .cook-header-title { font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; flex:1; }
+  .cook-phase-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .cook-body { flex:1; overflow-y:auto; padding:20px 16px; display:flex; flex-direction:column; }
+  .cook-mise-title { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:700; color:var(--charcoal); margin-bottom:4px; }
+  .cook-mise-sub { font-size:0.82rem; color:var(--muted); margin-bottom:16px; }
+  .cook-ing-check { list-style:none; padding:0; margin:0 0 20px; }
+  .cook-ing-check li { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:0.93rem; cursor:pointer; user-select:none; }
+  .cook-ing-check li:last-child { border-bottom:none; }
+  .cook-ing-check li.checked { color:var(--muted); text-decoration:line-through; }
+  .cook-ing-check input[type=checkbox] { width:18px; height:18px; accent-color:var(--terracotta); flex-shrink:0; cursor:pointer; }
+  .cook-start-btn { margin-top:auto; padding-top:16px; }
+  .cook-steps-body { flex:1; display:flex; flex-direction:column; padding:16px; overflow:hidden; }
+  .cook-ing-bar { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:16px; flex-shrink:0; }
+  .cook-ing-bar-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+  .cook-ing-bar-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .cook-ing-bar-body { overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
+  .cook-ing-bar-body.expanded { max-height:400px; }
+  .cook-ing-pills { display:flex; flex-wrap:wrap; gap:6px; padding-top:10px; }
+  .cook-ing-pill { font-size:0.75rem; background:var(--cream); border:1px solid var(--border); border-radius:20px; padding:3px 10px; color:var(--charcoal); }
+  .cook-step-area { flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0; }
+  .cook-step-num { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:2px; text-transform:uppercase; color:var(--terracotta); margin-bottom:12px; flex-shrink:0; }
+  .cook-step-text { font-family:'DM Sans',sans-serif; font-size:1.05rem; line-height:1.7; color:var(--charcoal); background:var(--card-bg); border-radius:12px; padding:20px; border:1px solid var(--border); overflow-y:auto; }
+  .cook-nav { display:flex; align-items:center; gap:12px; padding-top:16px; flex-shrink:0; }
+  .cook-nav-prev, .cook-nav-next { flex:1; }
+  .cook-progress { font-family:'DM Mono',monospace; font-size:0.78rem; color:var(--muted); text-align:center; min-width:60px; }
+  .cook-back-link { text-align:center; padding-top:10px; font-size:0.8rem; color:var(--muted); cursor:pointer; text-decoration:underline; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -283,6 +313,42 @@
     <button class="btn btn-ghost btn-sm" onclick="closeRecipeViewer()">✕ Close</button>
   </div>
   <div class="rv-content" id="rv-content"></div>
+</div>
+<div class="cook-overlay" id="cook-overlay">
+  <div class="cook-header">
+    <div class="cook-header-title" id="cook-title"></div>
+    <button class="btn btn-ghost btn-sm" onclick="closeCookingMode()">✕ Close</button>
+  </div>
+  <div class="cook-body" id="cook-mise-body">
+    <div class="cook-phase-label">Mise en Place</div>
+    <div class="cook-mise-title">Gather Your Ingredients</div>
+    <div class="cook-mise-sub">Check off each item as you measure it out</div>
+    <ul class="cook-ing-check" id="cook-ing-list"></ul>
+    <div class="cook-start-btn">
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem" onclick="startCooking()">Start Cooking →</button>
+    </div>
+  </div>
+  <div class="cook-steps-body" id="cook-steps-body" style="display:none">
+    <div class="cook-ing-bar">
+      <div class="cook-ing-bar-toggle" onclick="toggleCookIngBar()">
+        <span class="cook-ing-bar-label">Ingredients</span>
+        <span id="cook-ing-bar-chevron" style="color:var(--muted);font-size:0.9rem">▾ show</span>
+      </div>
+      <div class="cook-ing-bar-body" id="cook-ing-bar-body">
+        <div class="cook-ing-pills" id="cook-ing-pills"></div>
+      </div>
+    </div>
+    <div class="cook-step-area">
+      <div class="cook-step-num" id="cook-step-num"></div>
+      <div class="cook-step-text" id="cook-step-text"></div>
+    </div>
+    <div class="cook-nav">
+      <button class="btn btn-ghost cook-nav-prev" id="cook-prev-btn" onclick="cookPrev()">← Back</button>
+      <span class="cook-progress" id="cook-progress"></span>
+      <button class="btn btn-primary cook-nav-next" id="cook-next-btn" onclick="cookNext()">Next →</button>
+    </div>
+    <div class="cook-back-link" onclick="backToMise()">↩ Back to Ingredients</div>
+  </div>
 </div>
 <div id="sleep-overlay" onclick="exitSleepMode()"></div>
 <div class="note-fs-overlay" id="note-fs-overlay">
@@ -1268,6 +1334,56 @@ let recipes = JSON.parse(localStorage.getItem('kitchenRecipes')||'null') || [
       'Spoon garlic butter drippings over rested steak. Pile crispy parmesan potatoes on the side. Enjoy!'
     ]
   },
+  {
+    name:'Banana Bread Pancakes',
+    ingredients:['1 egg','2 small ripe bananas','3/4 cup buttermilk','2/3 oz melted butter','1 tsp vanilla extract','5 5/8 oz plain flour','1 tsp baking powder','1/4 tsp baking soda','1 pinch salt','3 1/8 oz chocolate chunks'],
+    steps:['Mash 2 small ripe bananas until mostly smooth. The riper the bananas, the sweeter your pancakes will be.','In a bowl, whisk together 1 egg, 3/4 cup buttermilk, 1 tsp vanilla extract, and the mashed bananas until smooth.','Add 5 5/8 oz plain flour, 1 tsp baking powder, 1/4 tsp baking soda, and 1 pinch salt. Fold gently until just combined — a few lumps are fine. Fold in 2/3 oz melted butter.','Fold in 3 1/8 oz chocolate chunks.','Add a little butter to a pan over low-medium heat and spoon in batter. Cook until bubbles form on the surface, then flip and cook until golden brown.','Serve warm with extra butter, maple syrup, and more chocolate chunks. Tip: don\'t overmix, let batter rest a few minutes for fluffier results.']
+  },
+  {
+    name:'Banana Chocolate Chip Cookies',time:'15 mins',
+    ingredients:['3 1/2 oz cold unsalted butter, cubed','2.8 oz caster sugar','2 1/4 oz light brown sugar','3 oz very ripe mashed banana','1 whole egg','1 tsp vanilla extract','8.8 oz plain flour','1/2 tsp baking powder','1/4 tsp baking soda','1/4 tsp salt','1/2 tsp cinnamon powder (optional)','1/2 tsp instant coffee powder (optional)','5 1/4 oz chocolate chunks'],
+    steps:['In a large mixing bowl, whisk together 3 1/2 oz cold unsalted butter, 2.8 oz caster sugar, and 2 1/4 oz light brown sugar until fluffy.','Add 1 whole egg, 1 tsp vanilla extract, 3 oz very ripe mashed banana, and 5 1/4 oz chocolate chunks. Whisk until fully incorporated.','Add 8.8 oz plain flour, 1/2 tsp baking powder, 1/4 tsp baking soda, 1/4 tsp salt, cinnamon and coffee powder (optional). Mix until just combined — do not overmix.','Roll dough into balls, place on a tray, and freeze for at least 1 hour or overnight.','Preheat oven to 175–180°C (350°F). Bake for 10–15 minutes until tops are lightly golden and centres remain soft.','Let cookies cool and set before serving. Best warm with ice cream.']
+  },
+  {
+    name:'Buffalo Chicken Dip',time:'20 mins',
+    ingredients:['1–2 cans chicken','2 blocks cream cheese','3/4 cup red hot Buffalo sauce','3/4 cup ranch dressing','1 cup shredded cheddar'],
+    steps:['On LOW heat, melt cream cheese and Buffalo sauce in a pan. Stir until smooth.','Add chicken, ranch dressing, and cheddar. Stir until mixed and warmed through.','Eat as-is, or transfer to a dish, top with more cheddar, and bake at 350°F for 20 minutes. Can also hold warm in a crockpot on low.']
+  },
+  {
+    name:'Crack Chicken',time:'4–8 hours',servings:'8',
+    ingredients:['2 lbs boneless skinless chicken breasts','2 packets ranch seasoning mix','2 packages cream cheese (8 oz each, cubed)','2.8 oz bacon bits','1 cup shredded cheddar cheese','Salt to taste'],
+    steps:['Spray crock pot with non-stick spray. Place chicken breasts on the bottom.','Top with ranch seasoning and cubed cream cheese.','Cook on LOW for 6–8 hours or HIGH for 4 hours.','Shred chicken with two forks. Add cheddar and bacon bits, stir to combine, and cook on low 10–15 minutes until cheese is melted.','Serve on buns, noodles, or however you like!']
+  },
+  {
+    name:'Create-Your-Own Meat Loaf',time:'50 mins',servings:'4',
+    ingredients:['1 beaten egg','3/4 cup soft bread crumbs (or 1/4 cup fine dry bread crumbs)','1/4 cup milk, beer, apple juice, or water','1/4 cup finely chopped onion (or 1 tbsp dried minced onion)','1/4 cup chopped celery, green pepper, or shredded carrot (optional)','2 tbsp snipped parsley (optional)','1/2 tsp dried sage, thyme, basil, oregano, or dillweed','1/2 tsp salt','1/4 tsp pepper','1 pound ground beef or ground lamb','2 tbsp barbecue sauce, chili sauce, or catsup'],
+    steps:['In a mixing bowl combine egg, bread crumbs, milk, onion, celery and parsley (if using), herb, salt, and pepper. Add ground meat and mix well.','In a shallow baking dish pat mixture into a 7×3×2-inch loaf. Or shape into a 6-inch circle with a 2-inch hole in the center.','Bake at 350°F for 45–50 minutes for the loaf (25–30 min for the ring), or until no pink remains.','Transfer to a serving plate and spoon barbecue sauce over the top.']
+  },
+  {
+    name:'Crockpot BWW Garlic Parmesan Chicken Pasta',time:'4–6 hours',
+    ingredients:['1 (12 oz) bottle Buffalo Wild Wings Parmesan Garlic Sauce','2 lbs boneless skinless chicken breasts','1 cup milk (+ 1/2 cup extra if needed)','8 oz cream cheese','1/2 cup shredded Parmesan cheese','16 oz pasta, cooked'],
+    steps:['Place chicken breasts in the bottom of your slow cooker.','Pour the entire bottle of Buffalo Wild Wings Parmesan Garlic Sauce over the chicken.','Add 1 cup milk and 1/4 cup Parmesan cheese.','Lay the cream cheese block on top.','Cook on HIGH for 4 hours or LOW for 5–6 hours.','Shred the chicken with two forks or a hand blender.','Cook pasta according to package directions.','Pour cooked pasta into the slow cooker and carefully mix with the chicken mixture.','Sprinkle remaining Parmesan over the top. Serve and enjoy!']
+  },
+  {
+    name:'Crockpot Shredded Beef Barbecue',time:'8–10 hours',servings:'8',
+    ingredients:['4 lb beef chuck roast','2–3 tbsp packed light brown sugar (rub)','2 1/2 tsp paprika','2 tsp garlic powder','2 tsp onion powder','1 1/2 tsp kosher salt','1 tsp black pepper','2 tbsp yellow mustard','2/3 cup beef broth','1 tsp liquid smoke (optional)','3–4 tbsp unsalted butter, sliced','20–24 oz bottle of ketchup (sauce)','1 large yellow onion, minced (sauce)','4 cloves garlic, minced (sauce)','3 tbsp butter + 1 tsp olive oil (sauce)','1/3–1/2 cup packed light brown sugar (sauce)','1/4 cup apple cider vinegar','2–3 tbsp molasses','1/2 tsp Worcestershire sauce'],
+    steps:['Mix brown sugar, paprika, garlic powder, onion powder, salt, and pepper to make the rub.','Add chuck roast to slow cooker. Drizzle with mustard and rub in. Coat both sides with the spice rub. Pour beef broth and liquid smoke around (not over) the roast. Top with butter slices.','Cook on LOW for 8–10 hours until fork tender.','Remove roast and shred on a cutting board, discarding large fat pieces. Drain juices from slow cooker and return shredded beef.','Make BBQ sauce: melt butter and olive oil in a saucepan over MED heat. Sauté onion and garlic until soft, about 5–8 minutes.','Add ketchup, brown sugar, cider vinegar, molasses, and Worcestershire sauce. Stir until combined.','Pour BBQ sauce into slow cooker with beef, stir well. Cook on HIGH for 30 minutes to caramelize.','Serve hot on buns or rolls!']
+  },
+  {
+    name:'Slow Cooker Mongolian Beef',time:'3 hours',servings:'5',
+    ingredients:['1 1/2 lbs flank steak, thinly sliced against the grain','1/4 cup cornstarch','1 tbsp toasted sesame oil','1 tsp minced garlic','1 tsp minced ginger','1/2 cup low sodium soy sauce','1/3 cup brown sugar','1/2 cup water','1/2 cup green onions, cut into 1/2-inch pieces'],
+    steps:['Place sliced flank steak in a bowl with cornstarch and toss to coat evenly.','Add the coated steak to the slow cooker.','Add sesame oil, garlic, ginger, soy sauce, brown sugar, and water. Stir to coat the meat.','Cover and cook on HIGH for 2–3 hours or LOW for 4–5 hours.','Stir in green onions, then serve over rice.']
+  },
+  {
+    name:'Ground Beef or Turkey Tacos',time:'~30 mins',
+    ingredients:['1 lb ground beef or ground turkey','1/4 cup Tone\'s Taco Seasoning (per 1 lb meat)','2/3 cup water (per 1 lb meat)','Taco shells or flour tortillas','Shredded cheese, lettuce, tomato, sour cream, salsa — to taste'],
+    steps:['If meat is frozen, thaw in the microwave: place in a microwave-safe bowl, use the Defrost setting (or 30% power) for about 5–7 minutes per pound, flipping halfway through. It\'s ready when it\'s cold but pliable — not hot.','In a skillet over medium-high heat, brown the ground beef or turkey, breaking it apart as it cooks, until no pink remains (about 8–10 minutes).','Drain any excess fat from the pan.','Stir in 1/4 cup Tone\'s Taco Seasoning and 2/3 cup water.','Reduce heat to low and simmer for 15–20 minutes, stirring occasionally, until the sauce thickens and coats the meat.','Serve in taco shells or tortillas with your favorite toppings.'],
+  },
+  {
+    name:"World's Best Lasagna",time:'2 hrs 30 mins',servings:'12',
+    ingredients:['1 lb sweet Italian sausage','3/4 lb lean ground beef','1/2 cup minced onion','2 cloves garlic, crushed','1 (28 oz) can crushed tomatoes','2 (6.5 oz) cans tomato sauce','2 (6 oz) cans tomato paste','1/2 cup water','2 tbsp white sugar','4 tbsp chopped fresh parsley, divided','1 1/2 tsp dried basil','1 1/2 tsp salt, divided','1 tsp Italian seasoning','1/2 tsp fennel seeds','1/4 tsp ground black pepper','12 lasagna noodles','16 oz ricotta cheese','1 egg','3/4 lb mozzarella cheese, sliced','3/4 cup grated Parmesan cheese'],
+    steps:['Cook sausage, ground beef, onion, and garlic in a Dutch oven over medium heat until well browned.','Stir in crushed tomatoes, tomato sauce, tomato paste, and water. Season with sugar, 2 tbsp parsley, basil, 1 tsp salt, Italian seasoning, fennel seeds, and pepper. Simmer covered for 1 1/2 hours, stirring occasionally.','Bring a large pot of salted water to a boil. Cook lasagna noodles 8–10 minutes. Drain and rinse with cold water.','In a bowl, combine ricotta with egg, remaining 2 tbsp parsley, and 1/2 tsp salt.','Preheat oven to 375°F (190°C).','Spread 1 1/2 cups meat sauce in the bottom of a 9×13 dish. Layer 6 noodles, half the ricotta, 1/3 of the mozzarella, 1 1/2 cups meat sauce, and 1/4 cup Parmesan.','Repeat layers. Top with remaining mozzarella and Parmesan. Cover with foil sprayed with cooking spray (to prevent sticking).','Bake for 25 minutes. Remove foil and bake 25 more minutes.','Rest lasagna 15 minutes before serving.']
+  },
 ];
 function saveRecipes(){localStorage.setItem('kitchenRecipes',JSON.stringify(recipes));}
 function toggleAddRecipe(){const f=document.getElementById('add-recipe-form');f.style.display=f.style.display==='none'?'block':'none';}
@@ -1332,7 +1448,10 @@ function renderRecipes(){
             ${r.time?`<span class="recipe-tag">⏱ ${r.time}</span>`:''}
             ${r.servings?`<span class="recipe-tag">👤 ${r.servings}</span>`:''}
           </div></div>
-          <div class="recipe-expand">⌄</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${r.steps?.length?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openCookingMode(${i})" style="white-space:nowrap">👨‍🍳 Cook</button>`:''}
+            <div class="recipe-expand">⌄</div>
+          </div>
         </div>
         <div class="recipe-body">
           ${r.ingredients?.length?`<h4>Ingredients</h4><ul>${r.ingredients.map(ing=>`<li>${ing}</li>`).join('')}</ul>`:''}
@@ -1343,6 +1462,83 @@ function renderRecipes(){
   }).join('');
 }
 function toggleRecipe(i){document.getElementById(`rc-${i}`)?.classList.toggle('open');}
+
+// ========== COOKING MODE ==========
+let cookRecipeIdx = null;
+let cookStepIdx = 0;
+
+function openCookingMode(idx) {
+  cookRecipeIdx = idx;
+  cookStepIdx = 0;
+  const r = recipes[idx];
+  document.getElementById('cook-title').textContent = r.name;
+  document.getElementById('cook-ing-list').innerHTML = (r.ingredients || []).map((ing, i) =>
+    `<li id="cook-li-${i}" onclick="toggleCookIng(${i})"><input type="checkbox" id="cook-cb-${i}" onclick="event.stopPropagation();toggleCookIng(${i})"><span>${ing}</span></li>`
+  ).join('');
+  document.getElementById('cook-ing-pills').innerHTML = (r.ingredients || []).map(ing =>
+    `<span class="cook-ing-pill">${ing}</span>`
+  ).join('');
+  document.getElementById('cook-mise-body').style.display = 'flex';
+  document.getElementById('cook-steps-body').style.display = 'none';
+  document.getElementById('cook-ing-bar-body').classList.remove('expanded');
+  document.getElementById('cook-ing-bar-chevron').textContent = '▾ show';
+  document.getElementById('cook-overlay').classList.add('open');
+}
+
+function toggleCookIng(i) {
+  const cb = document.getElementById('cook-cb-'+i);
+  cb.checked = !cb.checked;
+  document.getElementById('cook-li-'+i).classList.toggle('checked', cb.checked);
+}
+
+function startCooking() {
+  document.getElementById('cook-mise-body').style.display = 'none';
+  document.getElementById('cook-steps-body').style.display = 'flex';
+  cookStepIdx = 0;
+  renderCookStep();
+}
+
+function backToMise() {
+  document.getElementById('cook-mise-body').style.display = 'flex';
+  document.getElementById('cook-steps-body').style.display = 'none';
+}
+
+function renderCookStep() {
+  const steps = recipes[cookRecipeIdx]?.steps || [];
+  const total = steps.length;
+  document.getElementById('cook-step-num').textContent = `Step ${cookStepIdx + 1} of ${total}`;
+  document.getElementById('cook-step-text').textContent = steps[cookStepIdx];
+  document.getElementById('cook-progress').textContent = `${cookStepIdx + 1} / ${total}`;
+  document.getElementById('cook-prev-btn').style.visibility = cookStepIdx === 0 ? 'hidden' : 'visible';
+  const nextBtn = document.getElementById('cook-next-btn');
+  if (cookStepIdx === total - 1) {
+    nextBtn.textContent = 'Done ✓';
+    nextBtn.onclick = closeCookingMode;
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = cookNext;
+  }
+}
+
+function cookNext() {
+  const steps = recipes[cookRecipeIdx]?.steps || [];
+  if (cookStepIdx < steps.length - 1) { cookStepIdx++; renderCookStep(); }
+}
+
+function cookPrev() {
+  if (cookStepIdx > 0) { cookStepIdx--; renderCookStep(); }
+}
+
+function toggleCookIngBar() {
+  const body = document.getElementById('cook-ing-bar-body');
+  const chev = document.getElementById('cook-ing-bar-chevron');
+  const expanded = body.classList.toggle('expanded');
+  chev.textContent = expanded ? '▴ hide' : '▾ show';
+}
+
+function closeCookingMode() {
+  document.getElementById('cook-overlay').classList.remove('open');
+}
 
 // ========== RECIPE VIEWER OVERLAY ==========
 function openRecipeViewer(title, html) {
