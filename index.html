@@ -341,6 +341,9 @@
     <div class="cook-step-area">
       <div class="cook-step-num" id="cook-step-num"></div>
       <div class="cook-step-text" id="cook-step-text"></div>
+      <div id="cook-timer-hint" style="display:none;margin-top:10px;text-align:center">
+        <button class="btn btn-ghost btn-sm" onclick="goToTimers()" style="font-size:0.82rem;border:1px solid var(--border)">⏱ Set a timer for this step</button>
+      </div>
     </div>
     <div class="cook-nav">
       <button class="btn btn-ghost cook-nav-prev" id="cook-prev-btn" onclick="cookPrev()">← Back</button>
@@ -1503,13 +1506,17 @@ function backToMise() {
   document.getElementById('cook-steps-body').style.display = 'none';
 }
 
+const COOK_TIME_RE = /\d+\s*[-–to]+\s*\d+\s*(min|minute|minutes|mins|hour|hours|hr|hrs)|\d+\s*(min|minute|minutes|mins|hour|hours|hr|hrs)/i;
+
 function renderCookStep() {
   const steps = recipes[cookRecipeIdx]?.steps || [];
   const total = steps.length;
+  const step = steps[cookStepIdx];
   document.getElementById('cook-step-num').textContent = `Step ${cookStepIdx + 1} of ${total}`;
-  document.getElementById('cook-step-text').textContent = steps[cookStepIdx];
+  document.getElementById('cook-step-text').textContent = step;
   document.getElementById('cook-progress').textContent = `${cookStepIdx + 1} / ${total}`;
   document.getElementById('cook-prev-btn').style.visibility = cookStepIdx === 0 ? 'hidden' : 'visible';
+  document.getElementById('cook-timer-hint').style.display = COOK_TIME_RE.test(step) ? 'block' : 'none';
   const nextBtn = document.getElementById('cook-next-btn');
   if (cookStepIdx === total - 1) {
     nextBtn.textContent = 'Done ✓';
@@ -1518,6 +1525,12 @@ function renderCookStep() {
     nextBtn.textContent = 'Next →';
     nextBtn.onclick = cookNext;
   }
+}
+
+function goToTimers() {
+  closeCookingMode();
+  const btn = document.querySelector('nav button[onclick*="timers"]');
+  if (btn) showPanel('timers', btn);
 }
 
 function cookNext() {
