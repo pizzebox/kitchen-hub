@@ -2228,25 +2228,36 @@ function closeBarcodeScanner() {
 }
 
 async function lookupBarcode(code) {
-  // Make sure fridge panel + inventory tab are visible
   const fridgeBtn = document.querySelector('nav button[onclick*="fridge"]');
   if (fridgeBtn && !fridgeBtn.classList.contains('active')) showPanel('fridge', fridgeBtn);
   const invBtn = document.querySelector('#fridge-subnav .section-pill:last-child');
   if (invBtn) switchFridgeTab('inventory', invBtn);
-  const lookup = document.getElementById('scan-lookup-text');
-  if (lookup) lookup.textContent = 'Looking up barcode ' + code + '...';
+
+  const nameEl = document.getElementById('pantry-name');
+  nameEl.value = '';
+  nameEl.placeholder = 'Looking up ' + code + '...';
+
+  let name = '';
+
+  // 1. Try Open Food Facts
   try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=product_name,brands`);
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=product_name,product_name_en,brands`);
     const data = await res.json();
-    const name = (data.product?.product_name || data.product?.brands || '').trim();
-    const nameEl = document.getElementById('pantry-name');
-    if (nameEl) nameEl.value = name || '';
-    if (!name) { const nameEl2 = document.getElementById('pantry-name'); if(nameEl2) nameEl2.placeholder = 'Product not found — type name'; }
-  } catch(e) {
-    const nameEl = document.getElementById('pantry-name');
-    if (nameEl) nameEl.placeholder = 'Lookup failed — type name';
+    if (data.status === 1) name = (data.product?.product_name_en || data.product?.product_name || data.product?.brands || '').trim();
+  } catch(e) {}
+
+  // 2. Fall back to UPC Item DB (better US coverage)
+  if (!name) {
+    try {
+      const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (data.items?.length) name = (data.items[0].title || data.items[0].brand || '').trim();
+    } catch(e) {}
   }
-  document.getElementById('pantry-name').focus();
+
+  nameEl.value = name;
+  nameEl.placeholder = name ? 'Item name...' : 'Not found — type item name';
+  nameEl.focus();
 }
 
 renderLeftovers();
