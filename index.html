@@ -20,6 +20,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.2/umd/index.min.js"></script>
 <style>
   :root {
     --cream: #f5f0e8; --warm-white: #faf8f4; --charcoal: #2a2520;
@@ -2200,39 +2201,28 @@ function renderPantry() {
   el.innerHTML = html || '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Nothing tracked yet</div>';
 }
 
-// ---- BARCODE SCANNER ----
-let _scanStream = null, _scanDetector = null, _scanRaf = null;
+// ---- BARCODE SCANNER (ZXing) ----
+let _scanStream = null, _zxingReader = null;
 
 async function openBarcodeScanner() {
-  if (!('BarcodeDetector' in window)) {
-    const code = prompt('Barcode scanning not available on this browser.\nEnter barcode number manually:');
-    if (code && code.trim()) lookupBarcode(code.trim());
-    return;
-  }
   document.getElementById('scan-overlay').classList.add('open');
   try {
-    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
     const video = document.getElementById('scan-video');
-    video.srcObject = _scanStream;
-    await video.play();
-    _scanDetector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
-    const detect = async () => {
-      if (!_scanStream) return;
-      try {
-        const codes = await _scanDetector.detect(video);
-        if (codes.length) { closeBarcodeScanner(); lookupBarcode(codes[0].rawValue); return; }
-      } catch(e) {}
-      _scanRaf = requestAnimationFrame(detect);
-    };
-    _scanRaf = requestAnimationFrame(detect);
+    if (!window.ZXing) throw new Error('ZXing not loaded');
+    _zxingReader = new ZXing.BrowserMultiFormatReader();
+    _zxingReader.decodeFromStream(_scanStream, video, (result, err) => {
+      if (result) { closeBarcodeScanner(); lookupBarcode(result.getText()); }
+    });
   } catch(e) {
     closeBarcodeScanner();
-    alert('Camera access denied — allow camera permission to scan barcodes');
+    const code = prompt('Camera unavailable — enter barcode number manually:');
+    if (code && code.trim()) lookupBarcode(code.trim());
   }
 }
 
 function closeBarcodeScanner() {
-  if (_scanRaf) { cancelAnimationFrame(_scanRaf); _scanRaf = null; }
+  if (_zxingReader) { try { _zxingReader.reset(); } catch(e) {} _zxingReader = null; }
   if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
   document.getElementById('scan-overlay').classList.remove('open');
 }
