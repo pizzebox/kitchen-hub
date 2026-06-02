@@ -20,7 +20,6 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.19.2/umd/index.min.js"></script>
 <style>
   :root {
     --cream: #f5f0e8; --warm-white: #faf8f4; --charcoal: #2a2520;
@@ -273,11 +272,6 @@
   .freshness-fresh { background:#edf7ee; border-left:4px solid var(--sage); }
   .freshness-soon  { background:#fff8e1; border-left:4px solid var(--gold); }
   .freshness-old   { background:#fdecea; border-left:4px solid var(--terracotta); }
-  /* Barcode scanner overlay */
-  .scan-overlay { display:none; position:fixed; inset:0; z-index:9500; background:#000; flex-direction:column; }
-  .scan-overlay.open { display:flex; }
-  .scan-frame { position:absolute; top:50%; left:50%; transform:translate(-50%,-60%); width:280px; height:160px; border:3px solid #fff; border-radius:10px; box-shadow:0 0 0 9999px rgba(0,0,0,0.55); pointer-events:none; }
-  .scan-hint { position:absolute; bottom:120px; left:0; right:0; text-align:center; color:rgba(255,255,255,0.85); font-size:0.9rem; pointer-events:none; }
 
   /* Cooking Mode */
   .cook-overlay { display:none; position:fixed; inset:0; z-index:9200; background:var(--cream); flex-direction:column; overflow:hidden; }
@@ -309,6 +303,33 @@
   .cook-nav-prev, .cook-nav-next { flex:1; }
   .cook-progress { font-family:'DM Mono',monospace; font-size:0.78rem; color:var(--muted); text-align:center; min-width:60px; }
   .cook-back-link { text-align:center; padding-top:10px; font-size:0.8rem; color:var(--muted); cursor:pointer; text-decoration:underline; flex-shrink:0; }
+
+  /* Tip Jar */
+  .tip-jar { display:flex; align-items:flex-start; gap:14px; }
+  .tip-jar-icon { font-size:1.6rem; flex-shrink:0; margin-top:2px; }
+  .tip-jar-text { flex:1; font-size:0.9rem; line-height:1.6; color:var(--charcoal); font-style:italic; }
+
+  /* Holiday Countdown */
+  .holiday-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+  .holiday-row::-webkit-scrollbar { display:none; }
+  .holiday-chip { flex-shrink:0; background:var(--cream); border:1px solid var(--border); border-radius:12px; padding:12px 14px; text-align:center; min-width:90px; }
+  .holiday-chip.soon { border-color:var(--terracotta); background:#fdf5f0; }
+  .holiday-chip-emoji { font-size:1.4rem; margin-bottom:4px; }
+  .holiday-chip-days { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; color:var(--charcoal); line-height:1.1; }
+  .holiday-chip.soon .holiday-chip-days { color:var(--terracotta); }
+  .holiday-chip-unit { font-size:0.66rem; color:var(--muted); margin-top:1px; }
+  .holiday-chip-name { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:5px; }
+
+  /* Kitchen Radio */
+  .radio-genres { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .radio-station-item { display:flex; align-items:center; padding:9px 12px; border-radius:8px; cursor:pointer; transition:background 0.15s; gap:8px; }
+  .radio-station-item:hover { background:var(--cream); }
+  .radio-station-item.playing { background:var(--charcoal); color:var(--cream); }
+  .radio-station-list { max-height:200px; overflow-y:auto; margin-bottom:12px; scrollbar-width:thin; }
+  .radio-player { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--cream); border-radius:10px; border:1px solid var(--border); }
+  .radio-player-info { flex:1; overflow:hidden; }
+  .radio-player-name { font-size:0.9rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--charcoal); }
+  .radio-player-status { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted); margin-top:2px; }
 </style>
 </head>
 <body>
@@ -367,21 +388,6 @@
   </div>
 </div>
 <div id="sleep-overlay" onclick="exitSleepMode()"></div>
-<!-- BARCODE SCAN OVERLAY -->
-<div class="scan-overlay" id="scan-overlay">
-  <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;background:rgba(0,0,0,0.88);flex-shrink:0">
-    <span style="color:white;font-size:1rem;font-weight:600;flex:1">📷 Point at a barcode</span>
-    <button class="btn btn-ghost btn-sm" onclick="closeBarcodeScanner()" style="color:white;border-color:rgba(255,255,255,0.25)">✕ Cancel</button>
-  </div>
-  <div style="position:relative;flex:1;overflow:hidden">
-    <video id="scan-video" style="width:100%;height:100%;object-fit:cover" playsinline muted autoplay></video>
-    <div class="scan-frame"></div>
-    <div class="scan-hint">Align barcode with the box</div>
-  </div>
-  <div id="scan-lookup" style="display:none;padding:16px;text-align:center;background:rgba(0,0,0,0.88)">
-    <div id="scan-lookup-text" style="color:white;font-size:0.88rem;font-family:'DM Mono',monospace"></div>
-  </div>
-</div>
 <div class="note-fs-overlay" id="note-fs-overlay">
   <div class="note-fs-inner" id="note-fs-inner">
     <div class="note-fs-header" id="note-fs-header">
@@ -445,6 +451,39 @@
   <!-- TIMERS -->
   <div class="panel active" id="panel-timers">
     <div class="timers-grid" id="timers-grid"></div>
+
+    <!-- TIP JAR -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Kitchen Tip</div>
+      <div class="tip-jar">
+        <div class="tip-jar-icon">💡</div>
+        <div class="tip-jar-text" id="tip-text"></div>
+      </div>
+      <div style="margin-top:10px;text-align:right">
+        <button class="btn btn-ghost btn-sm" onclick="nextTip()">Next tip →</button>
+      </div>
+    </div>
+
+    <!-- KITCHEN RADIO -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title"><div class="dot" style="background:var(--terracotta)"></div> Kitchen Radio</div>
+      <div class="radio-genres" id="radio-genres"></div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input class="input-field" id="radio-search-input" placeholder="Search stations..." onkeydown="if(event.key==='Enter')radioSearch()" style="flex:1">
+        <button class="btn btn-ghost" onclick="radioSearch()">Search</button>
+      </div>
+      <div class="radio-station-list" id="radio-station-list">
+        <div style="color:var(--muted);font-size:0.82rem;padding:8px 0">Pick a genre or search to find stations</div>
+      </div>
+      <div class="radio-player" id="radio-player" style="display:none">
+        <button class="btn btn-primary" id="radio-play-btn" onclick="toggleRadioPlay()" style="padding:9px 16px;font-size:1.1rem;flex-shrink:0">⏸</button>
+        <div class="radio-player-info">
+          <div class="radio-player-name" id="radio-player-name">—</div>
+          <div class="radio-player-status" id="radio-player-status">● Live</div>
+        </div>
+        <input type="range" id="radio-vol" min="0" max="1" step="0.05" value="0.8" oninput="setRadioVol(this.value)" style="width:72px;accent-color:var(--terracotta);flex-shrink:0">
+      </div>
+    </div>
   </div>
 
   <!-- GROCERY -->
@@ -481,6 +520,11 @@
 
   <!-- CALENDAR -->
   <div class="panel" id="panel-calendar">
+    <!-- HOLIDAY COUNTDOWN -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title"><div class="dot" style="background:var(--terracotta)"></div> Coming Up</div>
+      <div class="holiday-row" id="holiday-row"></div>
+    </div>
     <div class="card">
           <!-- Google Calendar sync bar -->
       <div class="gcal-bar">
@@ -627,56 +671,21 @@
 
   <!-- FRIDGE -->
   <div class="panel" id="panel-fridge">
-    <div id="fridge-subnav" style="display:flex;gap:8px;margin-bottom:16px">
-      <div class="section-pill active" onclick="switchFridgeTab('leftovers',this)">🍱 Leftovers</div>
-      <div class="section-pill" onclick="switchFridgeTab('inventory',this)">📦 Inventory</div>
-    </div>
-
-    <!-- LEFTOVERS TAB -->
-    <div class="fridge-subtab" id="fridge-tab-leftovers">
-      <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--sage)"></div> Leftovers</div>
-        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-          <input class="input-field" id="leftover-name" placeholder="What did you make?" style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addLeftover()">
-          <select class="input-field" id="leftover-days" style="flex:0;min-width:130px">
-            <option value="0">Made today</option>
-            <option value="1">Yesterday</option>
-            <option value="2">2 days ago</option>
-            <option value="3">3 days ago</option>
-            <option value="4">4 days ago</option>
-          </select>
-          <button class="btn btn-primary" onclick="addLeftover()">Add</button>
-        </div>
-        <input class="input-field" id="leftover-notes" placeholder="Notes — container, qty, etc." style="margin-bottom:14px" onkeydown="if(event.key==='Enter')addLeftover()">
-        <div id="leftovers-list"></div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--sage)"></div> Leftovers</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <input class="input-field" id="leftover-name" placeholder="What did you make?" style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addLeftover()">
+        <select class="input-field" id="leftover-days" style="flex:0;min-width:130px">
+          <option value="0">Made today</option>
+          <option value="1">Yesterday</option>
+          <option value="2">2 days ago</option>
+          <option value="3">3 days ago</option>
+          <option value="4">4 days ago</option>
+        </select>
+        <button class="btn btn-primary" onclick="addLeftover()">Add</button>
       </div>
-    </div>
-
-    <!-- INVENTORY TAB -->
-    <div class="fridge-subtab" id="fridge-tab-inventory" style="display:none">
-      <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Add Item</div>
-        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-          <input class="input-field" id="pantry-name" placeholder="Item name..." style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addPantryItem()" onchange="pantryNameChanged(this)">
-          <input class="input-field" id="pantry-qty" placeholder="Qty" style="flex:0;width:70px" onkeydown="if(event.key==='Enter')addPantryItem()">
-          <select class="input-field" id="pantry-location" style="flex:0;min-width:110px">
-            <option value="fridge">🧊 Fridge</option>
-            <option value="pantry">🥫 Pantry</option>
-            <option value="freezer">❄️ Freezer</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button class="btn btn-primary" style="flex:1" onclick="addPantryItem()">+ Add</button>
-          <button class="btn btn-ghost" onclick="kitchenMic(this, t => { document.getElementById('pantry-name').value = t; addPantryItem(); })" title="Voice add">🎤</button>
-          <button class="btn btn-ghost" onclick="openBarcodeScanner()" style="display:flex;align-items:center;gap:6px;padding:9px 14px">📷 Scan</button>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Quick Add</div>
-        <div id="pantry-quick" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--brown)"></div> In Stock</div>
-        <div id="pantry-list"></div>
-      </div>
+      <input class="input-field" id="leftover-notes" placeholder="Notes — container, qty, etc." style="margin-bottom:14px" onkeydown="if(event.key==='Enter')addLeftover()">
+      <div id="leftovers-list"></div>
     </div>
   </div>
 
@@ -2089,18 +2098,9 @@ async function initBattery() {
 }
 initBattery();
 
-// ========== FRIDGE / LEFTOVERS / PANTRY ==========
+// ========== FRIDGE / LEFTOVERS ==========
 let leftovers = JSON.parse(localStorage.getItem('kitchenLeftovers') || '[]');
-let pantryItems = JSON.parse(localStorage.getItem('kitchenPantry') || '[]');
 function saveLeftovers() { localStorage.setItem('kitchenLeftovers', JSON.stringify(leftovers)); }
-function savePantry() { localStorage.setItem('kitchenPantry', JSON.stringify(pantryItems)); }
-
-function switchFridgeTab(tab, el) {
-  document.querySelectorAll('.fridge-subtab').forEach(t => t.style.display = 'none');
-  document.querySelectorAll('#fridge-subnav .section-pill').forEach(p => p.classList.remove('active'));
-  document.getElementById('fridge-tab-' + tab).style.display = 'block';
-  el.classList.add('active');
-}
 
 // ---- LEFTOVERS ----
 function addLeftover() {
@@ -2144,154 +2144,208 @@ function renderLeftovers() {
   }).join('');
 }
 
-// ---- PANTRY / INVENTORY ----
-const PANTRY_QUICK = [
-  {emoji:'🥛',name:'Milk',loc:'fridge'},{emoji:'🥚',name:'Eggs',loc:'fridge'},
-  {emoji:'🧈',name:'Butter',loc:'fridge'},{emoji:'🧀',name:'Cheese',loc:'fridge'},
-  {emoji:'🍞',name:'Bread',loc:'pantry'},{emoji:'🧅',name:'Onions',loc:'pantry'},
-  {emoji:'🧄',name:'Garlic',loc:'pantry'},{emoji:'🍋',name:'Lemons',loc:'fridge'},
-  {emoji:'🥩',name:'Ground beef',loc:'freezer'},{emoji:'🍗',name:'Chicken',loc:'freezer'},
+renderLeftovers();
+
+// ========== TIP JAR ==========
+const TIPS = [
+  "Salt your pasta water until it tastes like the sea — it's the only chance to season the pasta itself.",
+  "Let your steak rest as long as it cooked. The juices redistribute and it stays tender.",
+  "Cold butter makes flaky pastry. Warm butter makes tough pastry.",
+  "Acid (lemon juice, vinegar) brightens any dish that tastes flat.",
+  "Pat meat completely dry before searing — moisture is the enemy of a good crust.",
+  "Mise en place: prep everything before you turn on the heat.",
+  "A wooden spoon laid across a boiling pot stops it from boiling over.",
+  "Taste as you go — season in layers, not just at the end.",
+  "Garlic burns in 30 seconds on high heat. Watch it.",
+  "Roast vegetables cut-side down for the best caramelization.",
+  "Never crowd a pan — you'll steam instead of sear.",
+  "Brown butter takes 2 extra minutes and adds enormous depth.",
+  "Room temperature eggs and butter incorporate better into batters.",
+  "The brown bits stuck to the pan (fond) are flavor — deglaze with wine or stock.",
+  "Chop onions last — they linger on your hands and board.",
+  "A pinch of sugar in tomato sauce balances acidity.",
+  "Fresh herbs go in at the end. Dried herbs go in at the beginning.",
+  "Pasta finishes cooking in the sauce, not in the pot.",
+  "Ice bath immediately after blanching keeps vegetables bright green.",
+  "Sharp knife = safer knife. Dull knives slip.",
+  "Toast your spices in a dry pan before using to wake up the oils.",
+  "Let cast iron preheat for 2 full minutes before adding anything.",
+  "Eggs are done cooking before they look done.",
+  "Brine chicken for 30 minutes in salted water before cooking — night and day difference.",
+  "Add pasta water to your sauce. The starch helps it cling to the noodles.",
+  "Score fish skin before cooking to prevent curling.",
+  "A bay leaf in the pot doesn't taste like much alone, but you notice when it's missing.",
+  "Don't wash mushrooms — wipe them with a damp cloth. They absorb water.",
+  "Zest citrus before you juice it. Much easier.",
+  "Caramelized onions take 45 minutes, not 10. Anyone who says 10 is lying.",
+  "Season the oil, not just the food. Toss vegetables in seasoned oil before roasting.",
+  "Let dough rest — gluten relaxes and it becomes easier to shape.",
+  "Coconut milk is a great heavy cream substitute in most savory dishes.",
+  "The Maillard reaction (browning) = flavor. Don't rush it.",
+  "Store fresh herbs like flowers — stems in water, loosely covered in the fridge.",
+  "Finishing salt goes on after cooking, not during.",
+  "Knives go in the dishwasher exactly zero times.",
+  "A cold pan with cold butter and cold garlic on low = no burning.",
+  "The best tool in the kitchen is a bench scraper.",
+  "Freeze ginger and grate it from frozen — no peeling, zero waste.",
+  "Wipe your cutting board with a lemon half after fish to kill the smell.",
+  "One strip of bacon fat in beans does more than any seasoning packet.",
+  "Rest bread 20 minutes after baking before slicing or it gums up.",
 ];
 
-function renderPantryQuick() {
-  const el = document.getElementById('pantry-quick');
-  if (!el) return;
-  el.innerHTML = PANTRY_QUICK.map(item =>
-    `<button class="section-pill" style="font-size:0.82rem" onclick="quickAddPantry('${item.name}','${item.loc}')">${item.emoji} ${item.name}</button>`
+let tipIdx = Math.floor(Math.random() * TIPS.length);
+function showTip() { const el = document.getElementById('tip-text'); if (el) el.textContent = TIPS[tipIdx]; }
+function nextTip() { tipIdx = (tipIdx + 1) % TIPS.length; showTip(); }
+showTip();
+setInterval(nextTip, 30000);
+
+// ========== HOLIDAY COUNTDOWN ==========
+function easterDate(y) {
+  const a=y%19, b=Math.floor(y/100), c=y%100, d=Math.floor(b/4), e=b%4;
+  const f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const mo=Math.floor((h+l-7*m+114)/31), dy=((h+l-7*m+114)%31)+1;
+  return new Date(y, mo-1, dy);
+}
+function nthWeekday(y, mo, wd, n) {
+  if (n > 0) { const d=new Date(y,mo,1); d.setDate(1+((wd-d.getDay()+7)%7)+(n-1)*7); return d; }
+  const d=new Date(y,mo+1,0); d.setDate(d.getDate()-((d.getDay()-wd+7)%7)); return d;
+}
+function buildHolidays(y) {
+  return [
+    { name:"New Year's",   emoji:'🎆', date:new Date(y,0,1) },
+    { name:"Valentine's",  emoji:'💝', date:new Date(y,1,14) },
+    { name:"St. Patrick's",emoji:'☘️', date:new Date(y,2,17) },
+    { name:'Easter',       emoji:'🐣', date:easterDate(y) },
+    { name:"Mother's Day", emoji:'💐', date:nthWeekday(y,4,0,2) },
+    { name:'Memorial Day', emoji:'🇺🇸', date:nthWeekday(y,4,1,-1) },
+    { name:"Father's Day", emoji:'👔', date:nthWeekday(y,5,0,3) },
+    { name:'4th of July',  emoji:'🎇', date:new Date(y,6,4) },
+    { name:'Labor Day',    emoji:'🏖️', date:nthWeekday(y,8,1,1) },
+    { name:'Halloween',    emoji:'🎃', date:new Date(y,9,31) },
+    { name:'Thanksgiving', emoji:'🦃', date:nthWeekday(y,10,4,4) },
+    { name:'Christmas',    emoji:'🎄', date:new Date(y,11,25) },
+    { name:"New Year's Eve",emoji:'🥂', date:new Date(y,11,31) },
+  ];
+}
+function renderHolidays() {
+  const el = document.getElementById('holiday-row'); if (!el) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const y = today.getFullYear();
+  const upcoming = [...buildHolidays(y), ...buildHolidays(y+1)]
+    .map(h => ({ ...h, diff: Math.ceil((h.date - today) / 86400000) }))
+    .filter(h => h.diff >= 0)
+    .sort((a,b) => a.diff - b.diff)
+    .slice(0, 5);
+  el.innerHTML = upcoming.map(h => `
+    <div class="holiday-chip ${h.diff <= 7 ? 'soon' : ''}">
+      <div class="holiday-chip-emoji">${h.emoji}</div>
+      <div class="holiday-chip-days">${h.diff === 0 ? '🎉' : h.diff}</div>
+      <div class="holiday-chip-unit">${h.diff === 0 ? 'Today!' : h.diff === 1 ? 'tomorrow' : 'days'}</div>
+      <div class="holiday-chip-name">${h.name}</div>
+    </div>`).join('');
+}
+renderHolidays();
+
+// ========== KITCHEN RADIO ==========
+let _radioAudio = null;
+let _radioStations = [];
+let _radioCurrentIdx = -1;
+let _radioPlaying = false;
+
+const RADIO_GENRES = [
+  { label:'📍 Local',     params:'name=cincinnati&countrycode=US&limit=15&hidebroken=true&order=clickcount&reverse=true' },
+  { label:'🎷 Jazz',      params:'tag=jazz&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+  { label:'🤠 Country',   params:'tag=country&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+  { label:'🎵 Pop',       params:'tag=pop&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+  { label:'📻 Oldies',    params:'tag=oldies&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+  { label:'📰 News',      params:'tag=news&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+  { label:'🎻 Classical', params:'tag=classical&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+  { label:'🎸 Rock',      params:'tag=rock&countrycode=US&limit=15&hidebroken=true&order=votes&reverse=true' },
+];
+
+function renderRadioGenres() {
+  const el = document.getElementById('radio-genres'); if (!el) return;
+  el.innerHTML = RADIO_GENRES.map((g,i) =>
+    `<div class="section-pill" onclick="loadRadioGenre(${i},this)">${g.label}</div>`
   ).join('');
 }
 
-function quickAddPantry(name, loc) {
-  pantryItems.push({ id: Date.now(), name, location: loc, qty: '', addedDate: new Date().toISOString() });
-  savePantry(); renderPantry();
+async function loadRadioGenre(idx, el) {
+  document.querySelectorAll('#radio-genres .section-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  await _fetchRadioStations(`https://de1.api.radio-browser.info/json/stations/search?${RADIO_GENRES[idx].params}`);
 }
 
-function addPantryItem(prefillName, prefillLoc) {
-  const name = prefillName || document.getElementById('pantry-name').value.trim();
-  const location = prefillLoc || document.getElementById('pantry-location').value;
-  if (!name) return;
-  const qty = document.getElementById('pantry-qty').value.trim();
-  pantryItems.push({ id: Date.now(), name, location, qty, addedDate: new Date().toISOString() });
-  document.getElementById('pantry-name').value = '';
-  document.getElementById('pantry-qty').value = '';
-  savePantry(); renderPantry();
+async function radioSearch() {
+  const q = document.getElementById('radio-search-input').value.trim(); if (!q) return;
+  document.querySelectorAll('#radio-genres .section-pill').forEach(p => p.classList.remove('active'));
+  await _fetchRadioStations(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(q)}?limit=12&hidebroken=true`);
 }
 
-function deletePantryItem(id) {
-  pantryItems = pantryItems.filter(p => p.id !== id);
-  savePantry(); renderPantry();
-}
-
-function renderPantry() {
-  const el = document.getElementById('pantry-list');
-  if (!el) return;
-  const locs = ['fridge','pantry','freezer'];
-  const locLabels = { fridge:'🧊 Fridge', pantry:'🥫 Pantry', freezer:'❄️ Freezer' };
-  let html = '';
-  locs.forEach(loc => {
-    const items = pantryItems.filter(p => p.location === loc);
-    if (!items.length) return;
-    html += `<div style="font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;padding-top:6px;border-top:1px solid var(--border)">${locLabels[loc]}</div>`;
-    html += items.map(p => `
-      <div class="fridge-item" style="background:var(--cream)">
-        <div style="flex:1"><span style="font-weight:500;font-size:0.9rem">${p.name}</span>${p.qty ? `<span style="font-size:0.78rem;color:var(--muted);margin-left:8px">${p.qty}</span>` : ''}</div>
-        <button class="grocery-del" onclick="deletePantryItem(${p.id})">✕</button>
-      </div>`).join('');
-  });
-  el.innerHTML = html || '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Nothing tracked yet</div>';
-}
-
-// ---- BARCODE SCANNER (ZXing) ----
-let _scanStream = null, _zxingReader = null;
-
-async function openBarcodeScanner() {
-  document.getElementById('scan-overlay').classList.add('open');
+async function _fetchRadioStations(url) {
+  const list = document.getElementById('radio-station-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:8px;font-family:\'DM Mono\',monospace">Loading...</div>';
   try {
-    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
-    const video = document.getElementById('scan-video');
-    if (!window.ZXing) throw new Error('ZXing not loaded');
-    _zxingReader = new ZXing.BrowserMultiFormatReader();
-    _zxingReader.decodeFromStream(_scanStream, video, (result, err) => {
-      if (result) { closeBarcodeScanner(); lookupBarcode(result.getText()); }
-    });
-  } catch(e) {
-    closeBarcodeScanner();
-    const code = prompt('Camera unavailable — enter barcode number manually:');
-    if (code && code.trim()) lookupBarcode(code.trim());
-  }
-}
-
-function closeBarcodeScanner() {
-  if (_zxingReader) { try { _zxingReader.reset(); } catch(e) {} _zxingReader = null; }
-  if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
-  document.getElementById('scan-overlay').classList.remove('open');
-}
-
-let barcodeCache = JSON.parse(localStorage.getItem('kitchenBarcodes') || '{}');
-function saveBarcodeCache() { localStorage.setItem('kitchenBarcodes', JSON.stringify(barcodeCache)); }
-
-async function lookupBarcode(code) {
-  const fridgeBtn = document.querySelector('nav button[onclick*="fridge"]');
-  if (fridgeBtn && !fridgeBtn.classList.contains('active')) showPanel('fridge', fridgeBtn);
-  const invBtn = document.querySelector('#fridge-subnav .section-pill:last-child');
-  if (invBtn) switchFridgeTab('inventory', invBtn);
-
-  const nameEl = document.getElementById('pantry-name');
-  nameEl.dataset.barcode = code;
-  nameEl.value = '';
-  nameEl.placeholder = 'Searching...';
-
-  // 1. Local cache — instant hit if we've seen this before
-  if (barcodeCache[code]) {
-    nameEl.value = barcodeCache[code];
-    nameEl.placeholder = 'Item name...';
-    nameEl.focus();
-    return;
-  }
-
-  let name = '';
-
-  // 2. Open Food Facts (v0 tends to have wider product coverage than v2)
-  try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const res = await fetch(url);
     const data = await res.json();
-    if (data.status === 1 && data.product) {
-      name = (data.product.product_name_en || data.product.product_name || data.product.generic_name || data.product.brands || '').trim();
-    }
-  } catch(e) {}
-
-  // 3. UPC Item DB
-  if (!name) {
-    try {
-      const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`);
-      const data = await res.json();
-      if (data.items?.length) name = (data.items[0].title || data.items[0].brand || '').trim();
-    } catch(e) {}
+    _radioStations = data.filter(s => s.url_resolved || s.url).slice(0, 10);
+    _renderRadioList();
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:8px">Could not load stations — check connection</div>';
   }
+}
 
-  if (name) {
-    nameEl.value = name;
-    nameEl.placeholder = 'Item name...';
-    barcodeCache[code] = name;
-    saveBarcodeCache();
+function _renderRadioList() {
+  const list = document.getElementById('radio-station-list');
+  if (!_radioStations.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:8px">No stations found</div>'; return; }
+  list.innerHTML = _radioStations.map((s,i) => `
+    <div class="radio-station-item ${i === _radioCurrentIdx ? 'playing' : ''}" onclick="playRadioStation(${i})">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+      <span style="font-size:0.68rem;color:${i===_radioCurrentIdx?'rgba(255,255,255,0.55)':'var(--muted)'};flex-shrink:0;margin-left:6px">${s.bitrate ? s.bitrate+'k' : ''}</span>
+    </div>`).join('');
+}
+
+function playRadioStation(idx) {
+  const station = _radioStations[idx]; if (!station) return;
+  _radioCurrentIdx = idx;
+  if (_radioAudio) { _radioAudio.pause(); _radioAudio.src = ''; }
+  _radioAudio = new Audio();
+  _radioAudio.volume = parseFloat(document.getElementById('radio-vol').value) || 0.8;
+  const player = document.getElementById('radio-player');
+  const nameEl = document.getElementById('radio-player-name');
+  const statusEl = document.getElementById('radio-player-status');
+  const playBtn = document.getElementById('radio-play-btn');
+  player.style.display = 'flex';
+  nameEl.textContent = station.name;
+  statusEl.textContent = 'Connecting...';
+  playBtn.textContent = '⏸';
+  _radioPlaying = true;
+  _renderRadioList();
+  _radioAudio.src = station.url_resolved || station.url;
+  _radioAudio.play().catch(() => { statusEl.textContent = '⚠ Stream unavailable — try another'; playBtn.textContent = '▶'; _radioPlaying = false; });
+  _radioAudio.onplaying = () => { statusEl.textContent = '● Live'; };
+  _radioAudio.onerror = () => { statusEl.textContent = '⚠ Stream error — try another'; playBtn.textContent = '▶'; _radioPlaying = false; };
+  _radioAudio.onwaiting = () => { statusEl.textContent = 'Buffering...'; };
+}
+
+function toggleRadioPlay() {
+  if (!_radioAudio) return;
+  const playBtn = document.getElementById('radio-play-btn');
+  const statusEl = document.getElementById('radio-player-status');
+  if (_radioPlaying) {
+    _radioAudio.pause(); _radioPlaying = false;
+    playBtn.textContent = '▶'; statusEl.textContent = 'Paused';
   } else {
-    nameEl.value = '';
-    nameEl.placeholder = 'Type name — barcode ' + code + ' saved for next time';
-  }
-  nameEl.focus();
-}
-
-function pantryNameChanged(el) {
-  const code = el.dataset.barcode;
-  if (code && el.value.trim()) {
-    barcodeCache[code] = el.value.trim();
-    saveBarcodeCache();
+    _radioAudio.play(); _radioPlaying = true;
+    playBtn.textContent = '⏸'; statusEl.textContent = '● Live';
   }
 }
 
-renderLeftovers();
-renderPantry();
-renderPantryQuick();
+function setRadioVol(val) { if (_radioAudio) _radioAudio.volume = parseFloat(val); }
+
+renderRadioGenres();
 
 setupFsCanvas();
 renderNotes();
