@@ -657,7 +657,7 @@
       <div class="card">
         <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Add Item</div>
         <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-          <input class="input-field" id="pantry-name" placeholder="Item name..." style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addPantryItem()">
+          <input class="input-field" id="pantry-name" placeholder="Item name..." style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addPantryItem()" onchange="pantryNameChanged(this)">
           <input class="input-field" id="pantry-qty" placeholder="Qty" style="flex:0;width:70px" onkeydown="if(event.key==='Enter')addPantryItem()">
           <select class="input-field" id="pantry-location" style="flex:0;min-width:110px">
             <option value="fridge">🧊 Fridge</option>
@@ -2227,6 +2227,9 @@ function closeBarcodeScanner() {
   document.getElementById('scan-overlay').classList.remove('open');
 }
 
+let barcodeCache = JSON.parse(localStorage.getItem('kitchenBarcodes') || '{}');
+function saveBarcodeCache() { localStorage.setItem('kitchenBarcodes', JSON.stringify(barcodeCache)); }
+
 async function lookupBarcode(code) {
   const fridgeBtn = document.querySelector('nav button[onclick*="fridge"]');
   if (fridgeBtn && !fridgeBtn.classList.contains('active')) showPanel('fridge', fridgeBtn);
@@ -2234,30 +2237,56 @@ async function lookupBarcode(code) {
   if (invBtn) switchFridgeTab('inventory', invBtn);
 
   const nameEl = document.getElementById('pantry-name');
+  nameEl.dataset.barcode = code;
   nameEl.value = '';
-  nameEl.placeholder = 'Looking up ' + code + '...';
+  nameEl.placeholder = 'Searching...';
+
+  // 1. Local cache — instant hit if we've seen this before
+  if (barcodeCache[code]) {
+    nameEl.value = barcodeCache[code];
+    nameEl.placeholder = 'Item name...';
+    nameEl.focus();
+    return;
+  }
 
   let name = '';
 
-  // 1. Try Open Food Facts
+  // 2. Open Food Facts (v0 tends to have wider product coverage than v2)
   try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=product_name,product_name_en,brands`);
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const data = await res.json();
-    if (data.status === 1) name = (data.product?.product_name_en || data.product?.product_name || data.product?.brands || '').trim();
+    if (data.status === 1 && data.product) {
+      name = (data.product.product_name_en || data.product.product_name || data.product.generic_name || data.product.brands || '').trim();
+    }
   } catch(e) {}
 
-  // 2. Fall back to UPC Item DB (better US coverage)
+  // 3. UPC Item DB
   if (!name) {
     try {
-      const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(code)}`);
+      const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`);
       const data = await res.json();
       if (data.items?.length) name = (data.items[0].title || data.items[0].brand || '').trim();
     } catch(e) {}
   }
 
-  nameEl.value = name;
-  nameEl.placeholder = name ? 'Item name...' : 'Not found — type item name';
+  if (name) {
+    nameEl.value = name;
+    nameEl.placeholder = 'Item name...';
+    barcodeCache[code] = name;
+    saveBarcodeCache();
+  } else {
+    nameEl.value = '';
+    nameEl.placeholder = 'Type name — barcode ' + code + ' saved for next time';
+  }
   nameEl.focus();
+}
+
+function pantryNameChanged(el) {
+  const code = el.dataset.barcode;
+  if (code && el.value.trim()) {
+    barcodeCache[code] = el.value.trim();
+    saveBarcodeCache();
+  }
 }
 
 renderLeftovers();
