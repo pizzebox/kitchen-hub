@@ -266,6 +266,18 @@
     header h1 { font-size: 1.4rem; }
     nav button { font-size: 0.78rem; padding: 10px 4px; }
   }
+  /* Fridge / Leftovers / Pantry */
+  .fridge-item { display:flex; align-items:center; gap:10px; padding:12px; border-radius:8px; margin-bottom:8px; }
+  .fridge-days { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); white-space:nowrap; flex-shrink:0; }
+  .freshness-fresh { background:#edf7ee; border-left:4px solid var(--sage); }
+  .freshness-soon  { background:#fff8e1; border-left:4px solid var(--gold); }
+  .freshness-old   { background:#fdecea; border-left:4px solid var(--terracotta); }
+  /* Barcode scanner overlay */
+  .scan-overlay { display:none; position:fixed; inset:0; z-index:9500; background:#000; flex-direction:column; }
+  .scan-overlay.open { display:flex; }
+  .scan-frame { position:absolute; top:50%; left:50%; transform:translate(-50%,-60%); width:280px; height:160px; border:3px solid #fff; border-radius:10px; box-shadow:0 0 0 9999px rgba(0,0,0,0.55); pointer-events:none; }
+  .scan-hint { position:absolute; bottom:120px; left:0; right:0; text-align:center; color:rgba(255,255,255,0.85); font-size:0.9rem; pointer-events:none; }
+
   /* Cooking Mode */
   .cook-overlay { display:none; position:fixed; inset:0; z-index:9200; background:var(--cream); flex-direction:column; overflow:hidden; }
   .cook-overlay.open { display:flex; }
@@ -354,6 +366,21 @@
   </div>
 </div>
 <div id="sleep-overlay" onclick="exitSleepMode()"></div>
+<!-- BARCODE SCAN OVERLAY -->
+<div class="scan-overlay" id="scan-overlay">
+  <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;background:rgba(0,0,0,0.88);flex-shrink:0">
+    <span style="color:white;font-size:1rem;font-weight:600;flex:1">📷 Point at a barcode</span>
+    <button class="btn btn-ghost btn-sm" onclick="closeBarcodeScanner()" style="color:white;border-color:rgba(255,255,255,0.25)">✕ Cancel</button>
+  </div>
+  <div style="position:relative;flex:1;overflow:hidden">
+    <video id="scan-video" style="width:100%;height:100%;object-fit:cover" playsinline muted autoplay></video>
+    <div class="scan-frame"></div>
+    <div class="scan-hint">Align barcode with the box</div>
+  </div>
+  <div id="scan-lookup" style="display:none;padding:16px;text-align:center;background:rgba(0,0,0,0.88)">
+    <div id="scan-lookup-text" style="color:white;font-size:0.88rem;font-family:'DM Mono',monospace"></div>
+  </div>
+</div>
 <div class="note-fs-overlay" id="note-fs-overlay">
   <div class="note-fs-inner" id="note-fs-inner">
     <div class="note-fs-header" id="note-fs-header">
@@ -411,6 +438,7 @@
     <button onclick="showPanel('notes', this)">📝 Notes</button>
     <button onclick="showPanel('browse', this)">🌐 Browse</button>
     <button onclick="showPanel('convert', this)">⚖ Convert</button>
+    <button onclick="showPanel('fridge', this)">🧊 Fridge</button>
   </nav>
 
   <!-- TIMERS -->
@@ -593,6 +621,61 @@
     <div class="card" id="conv-ref-card">
       <div class="card-title"><div class="dot" style="background:var(--sage)"></div> Quick Reference</div>
       <div id="conv-ref"></div>
+    </div>
+  </div>
+
+  <!-- FRIDGE -->
+  <div class="panel" id="panel-fridge">
+    <div id="fridge-subnav" style="display:flex;gap:8px;margin-bottom:16px">
+      <div class="section-pill active" onclick="switchFridgeTab('leftovers',this)">🍱 Leftovers</div>
+      <div class="section-pill" onclick="switchFridgeTab('inventory',this)">📦 Inventory</div>
+    </div>
+
+    <!-- LEFTOVERS TAB -->
+    <div class="fridge-subtab" id="fridge-tab-leftovers">
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--sage)"></div> Leftovers</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <input class="input-field" id="leftover-name" placeholder="What did you make?" style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addLeftover()">
+          <select class="input-field" id="leftover-days" style="flex:0;min-width:130px">
+            <option value="0">Made today</option>
+            <option value="1">Yesterday</option>
+            <option value="2">2 days ago</option>
+            <option value="3">3 days ago</option>
+            <option value="4">4 days ago</option>
+          </select>
+          <button class="btn btn-primary" onclick="addLeftover()">Add</button>
+        </div>
+        <input class="input-field" id="leftover-notes" placeholder="Notes — container, qty, etc." style="margin-bottom:14px" onkeydown="if(event.key==='Enter')addLeftover()">
+        <div id="leftovers-list"></div>
+      </div>
+    </div>
+
+    <!-- INVENTORY TAB -->
+    <div class="fridge-subtab" id="fridge-tab-inventory" style="display:none">
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--gold)"></div> Add Item</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <input class="input-field" id="pantry-name" placeholder="Item name..." style="flex:2;min-width:140px" onkeydown="if(event.key==='Enter')addPantryItem()">
+          <input class="input-field" id="pantry-qty" placeholder="Qty" style="flex:0;width:70px" onkeydown="if(event.key==='Enter')addPantryItem()">
+          <select class="input-field" id="pantry-location" style="flex:0;min-width:110px">
+            <option value="fridge">🧊 Fridge</option>
+            <option value="pantry">🥫 Pantry</option>
+            <option value="freezer">❄️ Freezer</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn btn-primary" style="flex:1" onclick="addPantryItem()">+ Add</button>
+          <button class="btn btn-ghost" onclick="kitchenMic(this, t => { document.getElementById('pantry-name').value = t; addPantryItem(); })" title="Voice add">🎤</button>
+          <button class="btn btn-ghost" onclick="openBarcodeScanner()" style="display:flex;align-items:center;gap:6px;padding:9px 14px">📷 Scan</button>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Quick Add</div>
+        <div id="pantry-quick" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--brown)"></div> In Stock</div>
+        <div id="pantry-list"></div>
+      </div>
     </div>
   </div>
 
@@ -2004,6 +2087,181 @@ async function initBattery() {
   } catch(e) {}
 }
 initBattery();
+
+// ========== FRIDGE / LEFTOVERS / PANTRY ==========
+let leftovers = JSON.parse(localStorage.getItem('kitchenLeftovers') || '[]');
+let pantryItems = JSON.parse(localStorage.getItem('kitchenPantry') || '[]');
+function saveLeftovers() { localStorage.setItem('kitchenLeftovers', JSON.stringify(leftovers)); }
+function savePantry() { localStorage.setItem('kitchenPantry', JSON.stringify(pantryItems)); }
+
+function switchFridgeTab(tab, el) {
+  document.querySelectorAll('.fridge-subtab').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('#fridge-subnav .section-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('fridge-tab-' + tab).style.display = 'block';
+  el.classList.add('active');
+}
+
+// ---- LEFTOVERS ----
+function addLeftover() {
+  const name = document.getElementById('leftover-name').value.trim();
+  if (!name) return;
+  const daysAgo = parseInt(document.getElementById('leftover-days').value) || 0;
+  const d = new Date(); d.setDate(d.getDate() - daysAgo);
+  leftovers.push({ id: Date.now(), name, date: d.toISOString(), notes: document.getElementById('leftover-notes').value.trim() });
+  document.getElementById('leftover-name').value = '';
+  document.getElementById('leftover-notes').value = '';
+  document.getElementById('leftover-days').value = '0';
+  saveLeftovers(); renderLeftovers();
+}
+
+function deleteLeftover(id) {
+  leftovers = leftovers.filter(l => l.id !== id);
+  saveLeftovers(); renderLeftovers();
+}
+
+function freshnessInfo(dateStr) {
+  const days = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+  const label = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : days + ' days ago';
+  if (days <= 2) return { cls: 'freshness-fresh', label, emoji: '🟢' };
+  if (days <= 4) return { cls: 'freshness-soon', label, emoji: '🟡' };
+  return { cls: 'freshness-old', label, emoji: '🔴' };
+}
+
+function renderLeftovers() {
+  const el = document.getElementById('leftovers-list');
+  if (!el) return;
+  if (!leftovers.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">No leftovers tracked yet</div>'; return; }
+  const sorted = [...leftovers].sort((a, b) => new Date(a.date) - new Date(b.date));
+  el.innerHTML = sorted.map(l => {
+    const { cls, label, emoji } = freshnessInfo(l.date);
+    return `<div class="fridge-item ${cls}">
+      <div style="font-size:1.2rem;flex-shrink:0">${emoji}</div>
+      <div style="flex:1"><div style="font-weight:500;font-size:0.95rem">${l.name}</div>${l.notes ? `<div style="font-size:0.78rem;color:var(--muted);margin-top:2px">${l.notes}</div>` : ''}</div>
+      <div class="fridge-days">${label}</div>
+      <button class="grocery-del" onclick="deleteLeftover(${l.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ---- PANTRY / INVENTORY ----
+const PANTRY_QUICK = [
+  {emoji:'🥛',name:'Milk',loc:'fridge'},{emoji:'🥚',name:'Eggs',loc:'fridge'},
+  {emoji:'🧈',name:'Butter',loc:'fridge'},{emoji:'🧀',name:'Cheese',loc:'fridge'},
+  {emoji:'🍞',name:'Bread',loc:'pantry'},{emoji:'🧅',name:'Onions',loc:'pantry'},
+  {emoji:'🧄',name:'Garlic',loc:'pantry'},{emoji:'🍋',name:'Lemons',loc:'fridge'},
+  {emoji:'🥩',name:'Ground beef',loc:'freezer'},{emoji:'🍗',name:'Chicken',loc:'freezer'},
+];
+
+function renderPantryQuick() {
+  const el = document.getElementById('pantry-quick');
+  if (!el) return;
+  el.innerHTML = PANTRY_QUICK.map(item =>
+    `<button class="section-pill" style="font-size:0.82rem" onclick="quickAddPantry('${item.name}','${item.loc}')">${item.emoji} ${item.name}</button>`
+  ).join('');
+}
+
+function quickAddPantry(name, loc) {
+  pantryItems.push({ id: Date.now(), name, location: loc, qty: '', addedDate: new Date().toISOString() });
+  savePantry(); renderPantry();
+}
+
+function addPantryItem(prefillName, prefillLoc) {
+  const name = prefillName || document.getElementById('pantry-name').value.trim();
+  const location = prefillLoc || document.getElementById('pantry-location').value;
+  if (!name) return;
+  const qty = document.getElementById('pantry-qty').value.trim();
+  pantryItems.push({ id: Date.now(), name, location, qty, addedDate: new Date().toISOString() });
+  document.getElementById('pantry-name').value = '';
+  document.getElementById('pantry-qty').value = '';
+  savePantry(); renderPantry();
+}
+
+function deletePantryItem(id) {
+  pantryItems = pantryItems.filter(p => p.id !== id);
+  savePantry(); renderPantry();
+}
+
+function renderPantry() {
+  const el = document.getElementById('pantry-list');
+  if (!el) return;
+  const locs = ['fridge','pantry','freezer'];
+  const locLabels = { fridge:'🧊 Fridge', pantry:'🥫 Pantry', freezer:'❄️ Freezer' };
+  let html = '';
+  locs.forEach(loc => {
+    const items = pantryItems.filter(p => p.location === loc);
+    if (!items.length) return;
+    html += `<div style="font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;padding-top:6px;border-top:1px solid var(--border)">${locLabels[loc]}</div>`;
+    html += items.map(p => `
+      <div class="fridge-item" style="background:var(--cream)">
+        <div style="flex:1"><span style="font-weight:500;font-size:0.9rem">${p.name}</span>${p.qty ? `<span style="font-size:0.78rem;color:var(--muted);margin-left:8px">${p.qty}</span>` : ''}</div>
+        <button class="grocery-del" onclick="deletePantryItem(${p.id})">✕</button>
+      </div>`).join('');
+  });
+  el.innerHTML = html || '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Nothing tracked yet</div>';
+}
+
+// ---- BARCODE SCANNER ----
+let _scanStream = null, _scanDetector = null, _scanRaf = null;
+
+async function openBarcodeScanner() {
+  if (!('BarcodeDetector' in window)) {
+    const code = prompt('Barcode scanning not available on this browser.\nEnter barcode number manually:');
+    if (code && code.trim()) lookupBarcode(code.trim());
+    return;
+  }
+  document.getElementById('scan-overlay').classList.add('open');
+  try {
+    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('scan-video');
+    video.srcObject = _scanStream;
+    await video.play();
+    _scanDetector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
+    const detect = async () => {
+      if (!_scanStream) return;
+      try {
+        const codes = await _scanDetector.detect(video);
+        if (codes.length) { closeBarcodeScanner(); lookupBarcode(codes[0].rawValue); return; }
+      } catch(e) {}
+      _scanRaf = requestAnimationFrame(detect);
+    };
+    _scanRaf = requestAnimationFrame(detect);
+  } catch(e) {
+    closeBarcodeScanner();
+    alert('Camera access denied — allow camera permission to scan barcodes');
+  }
+}
+
+function closeBarcodeScanner() {
+  if (_scanRaf) { cancelAnimationFrame(_scanRaf); _scanRaf = null; }
+  if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
+  document.getElementById('scan-overlay').classList.remove('open');
+}
+
+async function lookupBarcode(code) {
+  // Make sure fridge panel + inventory tab are visible
+  const fridgeBtn = document.querySelector('nav button[onclick*="fridge"]');
+  if (fridgeBtn && !fridgeBtn.classList.contains('active')) showPanel('fridge', fridgeBtn);
+  const invBtn = document.querySelector('#fridge-subnav .section-pill:last-child');
+  if (invBtn) switchFridgeTab('inventory', invBtn);
+  const lookup = document.getElementById('scan-lookup-text');
+  if (lookup) lookup.textContent = 'Looking up barcode ' + code + '...';
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}?fields=product_name,brands`);
+    const data = await res.json();
+    const name = (data.product?.product_name || data.product?.brands || '').trim();
+    const nameEl = document.getElementById('pantry-name');
+    if (nameEl) nameEl.value = name || '';
+    if (!name) { const nameEl2 = document.getElementById('pantry-name'); if(nameEl2) nameEl2.placeholder = 'Product not found — type name'; }
+  } catch(e) {
+    const nameEl = document.getElementById('pantry-name');
+    if (nameEl) nameEl.placeholder = 'Lookup failed — type name';
+  }
+  document.getElementById('pantry-name').focus();
+}
+
+renderLeftovers();
+renderPantry();
+renderPantryQuick();
 
 setupFsCanvas();
 renderNotes();
