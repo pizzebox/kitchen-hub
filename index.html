@@ -1394,17 +1394,17 @@ renderPDFs();
 // ========== RECIPES ==========
 let recipes = JSON.parse(localStorage.getItem('kitchenRecipes')||'null') || [
   {
-    name:'Pasta Aglio e Olio',time:'20 min',servings:'2',
+    name:'🍝 Pasta Aglio e Olio',time:'20 min',servings:'2',
     ingredients:['200g spaghetti','4 cloves garlic','1/4 cup olive oil','Red pepper flakes','Salt & pepper','Parsley'],
     steps:['Boil pasta in salted water until al dente','Slice garlic thin and toast in olive oil on low heat','Add pepper flakes, toss in drained pasta','Finish with parsley and pasta water to loosen']
   },
   {
-    name:'Scrambled Eggs',time:'5 min',servings:'1',
+    name:'🍳 Scrambled Eggs',time:'5 min',servings:'1',
     ingredients:['3 eggs','1 tbsp butter','Salt','Splash of milk (optional)'],
     steps:['Whisk eggs with salt and milk','Melt butter in pan on medium-low','Add eggs and stir slowly until just set','Remove from heat while still slightly glossy']
   },
   {
-    name:'Ribeye Steak & Crispy Petite Gold Potatoes',time:'~1 hr 30 min',servings:'2',
+    name:'🥩 Ribeye Steak & Crispy Petite Gold Potatoes',time:'~1 hr 30 min',servings:'2',
     ingredients:[
       '1 boneless ribeye steak (~1.46 lbs)',
       '2 tbsp Kinder\'s Buttery Steakhouse rub',
@@ -1431,69 +1431,74 @@ let recipes = JSON.parse(localStorage.getItem('kitchenRecipes')||'null') || [
     ]
   },
   {
-    name:'Banana Bread Pancakes',
+    name:'🥞 Banana Bread Pancakes',
     ingredients:['1 egg','2 small ripe bananas','3/4 cup buttermilk','2/3 oz melted butter','1 tsp vanilla extract','5 5/8 oz plain flour','1 tsp baking powder','1/4 tsp baking soda','1 pinch salt','3 1/8 oz chocolate chunks'],
     steps:['Mash 2 small ripe bananas until mostly smooth. The riper the bananas, the sweeter your pancakes will be.','In a bowl, whisk together 1 egg, 3/4 cup buttermilk, 1 tsp vanilla extract, and the mashed bananas until smooth.','Add 5 5/8 oz plain flour, 1 tsp baking powder, 1/4 tsp baking soda, and 1 pinch salt. Fold gently until just combined — a few lumps are fine. Fold in 2/3 oz melted butter.','Fold in 3 1/8 oz chocolate chunks.','Add a little butter to a pan over low-medium heat and spoon in batter. Cook until bubbles form on the surface, then flip and cook until golden brown.','Serve warm with extra butter, maple syrup, and more chocolate chunks. Tip: don\'t overmix, let batter rest a few minutes for fluffier results.']
   },
   {
-    name:'Banana Chocolate Chip Cookies',time:'15 mins',
+    name:'🍪 Banana Chocolate Chip Cookies',time:'15 mins',
     ingredients:['3 1/2 oz cold unsalted butter, cubed','2.8 oz caster sugar','2 1/4 oz light brown sugar','3 oz very ripe mashed banana','1 whole egg','1 tsp vanilla extract','8.8 oz plain flour','1/2 tsp baking powder','1/4 tsp baking soda','1/4 tsp salt','1/2 tsp cinnamon powder (optional)','1/2 tsp instant coffee powder (optional)','5 1/4 oz chocolate chunks'],
     steps:['In a large mixing bowl, whisk together 3 1/2 oz cold unsalted butter, 2.8 oz caster sugar, and 2 1/4 oz light brown sugar until fluffy.','Add 1 whole egg, 1 tsp vanilla extract, 3 oz very ripe mashed banana, and 5 1/4 oz chocolate chunks. Whisk until fully incorporated.','Add 8.8 oz plain flour, 1/2 tsp baking powder, 1/4 tsp baking soda, 1/4 tsp salt, cinnamon and coffee powder (optional). Mix until just combined — do not overmix.','Roll dough into balls, place on a tray, and freeze for at least 1 hour or overnight.','Preheat oven to 175–180°C (350°F). Bake for 10–15 minutes until tops are lightly golden and centres remain soft.','Let cookies cool and set before serving. Best warm with ice cream.']
   },
   {
-    name:'Buffalo Chicken Dip',time:'20 mins',
+    name:'🌶️ Buffalo Chicken Dip',time:'20 mins',
     ingredients:['1–2 cans chicken','2 blocks cream cheese','3/4 cup red hot Buffalo sauce','3/4 cup ranch dressing','1 cup shredded cheddar'],
     steps:['On LOW heat, melt cream cheese and Buffalo sauce in a pan. Stir until smooth.','Add chicken, ranch dressing, and cheddar. Stir until mixed and warmed through.','Eat as-is, or transfer to a dish, top with more cheddar, and bake at 350°F for 20 minutes. Can also hold warm in a crockpot on low.']
   },
   {
-    name:'Crack Chicken',time:'4–8 hours',servings:'8',
+    name:'🐔 Crack Chicken',time:'4–8 hours',servings:'8',
     ingredients:['2 lbs boneless skinless chicken breasts','2 packets ranch seasoning mix','2 packages cream cheese (8 oz each, cubed)','2.8 oz bacon bits','1 cup shredded cheddar cheese','Salt to taste'],
     steps:['Spray crock pot with non-stick spray. Place chicken breasts on the bottom.','Top with ranch seasoning and cubed cream cheese.','Cook on LOW for 6–8 hours or HIGH for 4 hours.','Shred chicken with two forks. Add cheddar and bacon bits, stir to combine, and cook on low 10–15 minutes until cheese is melted.','Serve on buns, noodles, or however you like!']
   },
   {
-    name:'Create-Your-Own Meat Loaf',time:'50 mins',servings:'4',
+    name:'🍖 Create-Your-Own Meat Loaf',time:'50 mins',servings:'4',
     ingredients:['1 beaten egg','3/4 cup soft bread crumbs (or 1/4 cup fine dry bread crumbs)','1/4 cup milk, beer, apple juice, or water','1/4 cup finely chopped onion (or 1 tbsp dried minced onion)','1/4 cup chopped celery, green pepper, or shredded carrot (optional)','2 tbsp snipped parsley (optional)','1/2 tsp dried sage, thyme, basil, oregano, or dillweed','1/2 tsp salt','1/4 tsp pepper','1 pound ground beef or ground lamb','2 tbsp barbecue sauce, chili sauce, or catsup'],
     steps:['In a mixing bowl combine egg, bread crumbs, milk, onion, celery and parsley (if using), herb, salt, and pepper. Add ground meat and mix well.','In a shallow baking dish pat mixture into a 7×3×2-inch loaf. Or shape into a 6-inch circle with a 2-inch hole in the center.','Bake at 350°F for 45–50 minutes for the loaf (25–30 min for the ring), or until no pink remains.','Transfer to a serving plate and spoon barbecue sauce over the top.']
   },
   {
-    name:'Crockpot BWW Garlic Parmesan Chicken Pasta',time:'4–6 hours',
+    name:'🧄 Crockpot BWW Garlic Parmesan Chicken Pasta',time:'4–6 hours',
     ingredients:['1 (12 oz) bottle Buffalo Wild Wings Parmesan Garlic Sauce','2 lbs boneless skinless chicken breasts','1 cup milk (+ 1/2 cup extra if needed)','8 oz cream cheese','1/2 cup shredded Parmesan cheese','16 oz pasta, cooked'],
     steps:['Place chicken breasts in the bottom of your slow cooker.','Pour the entire bottle of Buffalo Wild Wings Parmesan Garlic Sauce over the chicken.','Add 1 cup milk and 1/4 cup Parmesan cheese.','Lay the cream cheese block on top.','Cook on HIGH for 4 hours or LOW for 5–6 hours.','Shred the chicken with two forks or a hand blender.','Cook pasta according to package directions.','Pour cooked pasta into the slow cooker and carefully mix with the chicken mixture.','Sprinkle remaining Parmesan over the top. Serve and enjoy!']
   },
   {
-    name:'Crockpot Shredded Beef Barbecue',time:'8–10 hours',servings:'8',
+    name:'🔥 Crockpot Shredded Beef Barbecue',time:'8–10 hours',servings:'8',
     ingredients:['4 lb beef chuck roast','2–3 tbsp packed light brown sugar (rub)','2 1/2 tsp paprika','2 tsp garlic powder','2 tsp onion powder','1 1/2 tsp kosher salt','1 tsp black pepper','2 tbsp yellow mustard','2/3 cup beef broth','1 tsp liquid smoke (optional)','3–4 tbsp unsalted butter, sliced','20–24 oz bottle of ketchup (sauce)','1 large yellow onion, minced (sauce)','4 cloves garlic, minced (sauce)','3 tbsp butter + 1 tsp olive oil (sauce)','1/3–1/2 cup packed light brown sugar (sauce)','1/4 cup apple cider vinegar','2–3 tbsp molasses','1/2 tsp Worcestershire sauce'],
     steps:['Mix brown sugar, paprika, garlic powder, onion powder, salt, and pepper to make the rub.','Add chuck roast to slow cooker. Drizzle with mustard and rub in. Coat both sides with the spice rub. Pour beef broth and liquid smoke around (not over) the roast. Top with butter slices.','Cook on LOW for 8–10 hours until fork tender.','Remove roast and shred on a cutting board, discarding large fat pieces. Drain juices from slow cooker and return shredded beef.','Make BBQ sauce: melt butter and olive oil in a saucepan over MED heat. Sauté onion and garlic until soft, about 5–8 minutes.','Add ketchup, brown sugar, cider vinegar, molasses, and Worcestershire sauce. Stir until combined.','Pour BBQ sauce into slow cooker with beef, stir well. Cook on HIGH for 30 minutes to caramelize.','Serve hot on buns or rolls!']
   },
   {
-    name:'Slow Cooker Mongolian Beef',time:'3 hours',servings:'5',
+    name:'🥢 Slow Cooker Mongolian Beef',time:'3 hours',servings:'5',
     ingredients:['1 1/2 lbs flank steak, thinly sliced against the grain','1/4 cup cornstarch','1 tbsp toasted sesame oil','1 tsp minced garlic','1 tsp minced ginger','1/2 cup low sodium soy sauce','1/3 cup brown sugar','1/2 cup water','1/2 cup green onions, cut into 1/2-inch pieces'],
     steps:['Place sliced flank steak in a bowl with cornstarch and toss to coat evenly.','Add the coated steak to the slow cooker.','Add sesame oil, garlic, ginger, soy sauce, brown sugar, and water. Stir to coat the meat.','Cover and cook on HIGH for 2–3 hours or LOW for 4–5 hours.','Stir in green onions, then serve over rice.']
   },
   {
-    name:'Ground Beef or Turkey Tacos',time:'~30 mins',
+    name:'🌮 Ground Beef or Turkey Tacos',time:'~30 mins',
     ingredients:['1 lb ground beef or ground turkey','1/4 cup Tone\'s Taco Seasoning (per 1 lb meat)','2/3 cup water (per 1 lb meat)','Taco shells or flour tortillas','Shredded cheese, lettuce, tomato, sour cream, salsa — to taste'],
     steps:['If meat is frozen, thaw in the microwave: place in a microwave-safe bowl, use the Defrost setting (or 30% power) for about 5–7 minutes per pound, flipping halfway through. It\'s ready when it\'s cold but pliable — not hot.','In a skillet over medium-high heat, brown the ground beef or turkey, breaking it apart as it cooks, until no pink remains (about 8–10 minutes).','Drain any excess fat from the pan.','Stir in 1/4 cup Tone\'s Taco Seasoning and 2/3 cup water.','Reduce heat to low and simmer for 15–20 minutes, stirring occasionally, until the sauce thickens and coats the meat.','Serve in taco shells or tortillas with your favorite toppings.'],
   },
   {
-    name:"World's Best Lasagna",time:'2 hrs 30 mins',servings:'12',
+    name:"🫕 World's Best Lasagna",time:'2 hrs 30 mins',servings:'12',
     ingredients:['1 lb sweet Italian sausage','3/4 lb lean ground beef','1/2 cup minced onion','2 cloves garlic, crushed','1 (28 oz) can crushed tomatoes','2 (6.5 oz) cans tomato sauce','2 (6 oz) cans tomato paste','1/2 cup water','2 tbsp white sugar','4 tbsp chopped fresh parsley, divided','1 1/2 tsp dried basil','1 1/2 tsp salt, divided','1 tsp Italian seasoning','1/2 tsp fennel seeds','1/4 tsp ground black pepper','12 lasagna noodles','16 oz ricotta cheese','1 egg','3/4 lb mozzarella cheese, sliced','3/4 cup grated Parmesan cheese'],
     steps:['Cook sausage, ground beef, onion, and garlic in a Dutch oven over medium heat until well browned.','Stir in crushed tomatoes, tomato sauce, tomato paste, and water. Season with sugar, 2 tbsp parsley, basil, 1 tsp salt, Italian seasoning, fennel seeds, and pepper. Simmer covered for 1 1/2 hours, stirring occasionally.','Bring a large pot of salted water to a boil. Cook lasagna noodles 8–10 minutes. Drain and rinse with cold water.','In a bowl, combine ricotta with egg, remaining 2 tbsp parsley, and 1/2 tsp salt.','Preheat oven to 375°F (190°C).','Spread 1 1/2 cups meat sauce in the bottom of a 9×13 dish. Layer 6 noodles, half the ricotta, 1/3 of the mozzarella, 1 1/2 cups meat sauce, and 1/4 cup Parmesan.','Repeat layers. Top with remaining mozzarella and Parmesan. Cover with foil sprayed with cooking spray (to prevent sticking).','Bake for 25 minutes. Remove foil and bake 25 more minutes.','Rest lasagna 15 minutes before serving.']
   },
   {
-    name:'Classic Burger',time:'20 min',servings:'2',
+    name:'🍔 Classic Burger',time:'20 min',servings:'2',
     ingredients:['1 lb 80/20 ground beef','Salt & black pepper','2 brioche or potato buns','2 slices American cheese','Butter (for buns)','Toppings: lettuce, tomato, onion, pickles, ketchup, mustard, mayo'],
     steps:['Divide beef into two 8 oz balls — do NOT overwork the meat. Flatten gently into patties about 3/4 inch thick and slightly wider than your bun (they shrink). Press a small indent in the center with your thumb to prevent doming.','Season both sides generously with salt and pepper right before cooking.','Heat a cast iron skillet or grill on high until very hot. Cook patties 3–4 minutes per side without pressing them down for medium (160°F internal). Add cheese in the last minute and cover to melt.','While burgers rest, split buns and butter the cut sides. Toast in the pan 1–2 minutes until golden.','Build your burger and serve immediately.']
   },
   {
-    name:'Smashburger',time:'15 min',servings:'2',
+    name:'🫓 Smashburger',time:'15 min',servings:'2',
     ingredients:['3/4 lb 80/20 ground beef','Salt & black pepper','2 brioche or Martin\'s potato buns','2–4 slices American cheese','1 tbsp neutral oil or butter','Smash sauce: 3 tbsp mayo, 1 tbsp ketchup, 1 tsp yellow mustard, 1 tsp pickle brine, pinch of garlic powder','Toppings: thin-sliced white onion, shredded lettuce, dill pickles'],
     steps:['Mix smash sauce ingredients together and refrigerate. Toast buns in a dry pan until golden — set aside.','Divide beef into 3 oz balls (about golf ball size). Do NOT season yet, do NOT pack tight.','Heat a cast iron skillet on HIGH for 2–3 minutes until smoking hot. Add a thin film of oil.','Place a ball in the skillet, immediately place a sheet of parchment on top, and smash it flat with a heavy spatula or burger press — push hard and hold for 10 seconds. You want it very thin (~1/4 inch).','Season the top immediately with salt and pepper. Cook undisturbed for 90 seconds — you\'ll see the edges going brown and crispy.','Scrape and flip. Add a slice of American cheese right away. Cook 45–60 seconds more. For a double, stack two patties.','Build: sauce on both bun halves, onion and pickles on the bottom, patty on top, lettuce on the crown. Serve immediately — these do not wait well.']
   },
   {
-    name:'Boiled Eggs (Soft, Medium & Hard)',time:'varies',servings:'any',
+    name:'🥚 Boiled Eggs (Soft, Medium & Hard)',time:'varies',servings:'any',
     ingredients:['Eggs (straight from the fridge is fine)','Water','Ice (for ice bath)'],
     steps:['Bring a pot of water to a full rolling boil. Use enough water to fully submerge your eggs.','While water heats, prepare an ice bath: a bowl with cold water and a big handful of ice.','Gently lower eggs into boiling water with a slotted spoon (don\'t drop them or they\'ll crack). Reduce heat slightly to maintain a gentle boil.','Cook to your liking: SOFT (runny yolk, jammy white) = 6 minutes | MEDIUM (jammy yolk, fully set white) = 8 minutes | HARD (fully set yolk, no green ring) = 10–11 minutes.','Immediately transfer to the ice bath and let sit for at least 5 minutes — this stops cooking and makes peeling much easier.','To peel: gently tap all around on the counter, then peel under a thin stream of running water. Start at the wider end where there\'s usually an air pocket.','Tip: older eggs peel more easily than very fresh ones. Add 1 tsp of baking soda to the boiling water to help with peeling if your eggs are super fresh.']
+  },
+  {
+    name:'🧅 Caramelised Onions',time:'25 min',
+    ingredients:['Onions, thinly sliced','Pinch of salt','Drizzle of oil','Pat of butter'],
+    steps:['Place sliced onions in a microwave-safe bowl with a pinch of salt and a drizzle of oil. Cover the bowl and microwave on high for 10 minutes, stirring halfway through.','Carefully remove the bowl (it will be hot and steamy) and drain off all the excess water that has accumulated in the bottom.','Heat a skillet over medium heat with a pat of butter or oil. Transfer the softened, drained onions to the pan.','Sauté for about 15 minutes, stirring occasionally, until they reach your desired level of rich browning and sweetness.']
   },
 ];
 function saveRecipes(){localStorage.setItem('kitchenRecipes',JSON.stringify(recipes));}
