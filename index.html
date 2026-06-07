@@ -1500,6 +1500,11 @@ let recipes = JSON.parse(localStorage.getItem('kitchenRecipes')||'null') || [
     ingredients:['Onions, thinly sliced','Pinch of salt','Drizzle of oil','Pat of butter'],
     steps:['Place sliced onions in a microwave-safe bowl with a pinch of salt and a drizzle of oil. Cover the bowl and microwave on high for 10 minutes, stirring halfway through.','Carefully remove the bowl (it will be hot and steamy) and drain off all the excess water that has accumulated in the bottom.','Heat a skillet over medium heat with a pat of butter or oil. Transfer the softened, drained onions to the pan.','Sauté for about 15 minutes, stirring occasionally, until they reach your desired level of rich browning and sweetness.']
   },
+  {
+    name:'🍝 Mini Meatball Pasta',time:'30 min',servings:'4',
+    ingredients:['1/4 cup worcestershire sauce','4 cloves fresh garlic','1 tsp fresh parsley','1/2 tbsp italian seasoning','1 tsp paprika','1 tsp salt + 1 tsp pepper','3 tbsp olive oil','1 lb ground beef','2 cups water or broth','1 cup heavy cream','Half box of noodles','2 cups marinara sauce','1 cup fresh parm','1 cup grated parm','1 tsp salt + pepper','Optional: more cheese and parsley for topping'],
+    steps:['In a bowl mix the ground beef, worcestershire, fresh garlic, parsley, italian seasoning, paprika, salt, and pepper until well combined.','In a pan add the olive oil and meatballs, cook until almost done.','Add the water or broth and noodles, then cover and cook until tender.','Add the heavy cream then finish cooking until soft.','Add both types of cheese, salt, pepper and stir well.','Finish by topping with more cheese and parsley.']
+  },
 ];
 function saveRecipes(){localStorage.setItem('kitchenRecipes',JSON.stringify(recipes));}
 function toggleAddRecipe(){const f=document.getElementById('add-recipe-form');f.style.display=f.style.display==='none'?'block':'none';}
